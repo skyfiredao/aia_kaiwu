@@ -1,6 +1,6 @@
 # 介绍：如何在软件工程中使用开物 (Kaiwu) 编码代理工作流系统
 
-本文档介绍 *aia_kaiwu* 代理工作流系统的设计理念、角色、方法论和典型用法。目标读者是想要理解**这套系统是什么、为什么这么设计、怎么用于真实开发工作**的软件工程师。安装说明见 `README.md`。
+本文档介绍 *aia_kaiwu* 代理工作流系统的设计理念、角色、方法论和典型用法。目标读者是想要理解**这套系统是什么、为什么这么设计、怎么用于真实开发工作**的软件工程师。安装说明见 [`README_zh.md`](README_zh.md)。
 
 ## 前言
 
@@ -17,7 +17,7 @@
 | 层 | 文件模式 | 职能 | 数量 |
 |---|---|---|---|
 | 1. 路由 | `AGENTS.md` | 读用户每条消息；按第 3.0 节的语义分类表分发到对应 workflow / skill。没有关键字表、没有 ask-before-dispatch；不明确的意图路由到 `@task-clarify`。 | 1 |
-| 2. Workflow | `skills/job-*.md` | 把 task skill 串成端到端业务流的多步链。workflow 文件是路由 / 组合谱；硬约束都在被调用的 skill 里。 | 8 |
+| 2. Workflow | `skills/job-*.md` | 把 task skill 串成端到端业务流，负责审批门和状态交接，并可持久化已批准的编排产物。生产代码行为留在被调用的 task。 | 8 |
 | 3. Task | `skills/task-*.md` | 原子操作的具体行为契约（Purpose / Hard constraints / Output shape / Handoff）。每个 task 做好一件事。 | 14 |
 
 组合方式：
@@ -31,7 +31,7 @@
 
 - 22 个 agent 平铺一层会强迫用户（和 AI）背下 ~20 项能力的适用时机。分层把"当前在什么 workflow"（job）、"在做什么操作"（task）、"怎么决定"（router）分开。
 - Workflow 是可复用的业务流（plan-approve-build-review、安全审计、硬 bug 诊断、代码-文档对齐）。Task 保持职能收窄。Router 按工具能力自适应。
-- 硬约束只在 task 里定义一次。Workflow 不重定义、不放宽；router 不写行为逻辑。漂移有边界。
+- 生产代码规则只在 task 里定义。Workflow 只增加审批门、步骤顺序、状态交接和已批准计划产物的持久化规则，不放宽 task 规则。Router 只负责派发。
 
 ### 为什么本设计对便宜模型友好
 
@@ -39,7 +39,7 @@
 
 - **Router（第一层）** 本质是语义分类表查表（3.0 节）。AI 把用户意图匹配到表中一行，任何合格的 LLM 都做得可靠。
 - **Workflow（第二层）** 是编号的分发链（`call task-A → task-B → gate → task-C`）。不用开放推理；照编号步骤走。
-- **Task（第三层）** 每个都带明确的**机器可判 predicate**（测试通过、exit code 0、期望输出、HTTP 状态匹配等）作为 done 判据。不用做模糊的"看起来对不对"推理。
+- **执行类 Task（第三层）** 使用明确的机器可判 predicate（测试通过、exit code 0、期望输出、HTTP 状态匹配等）作为 done 判据。只读 task 使用结构化判词和带来源的证据。
 - **有界预算**（`task-yugong` 单会话上限 13 basket；no-progress 检测阻断打转）防止跑飞的循环带来成本失控。
 - **歧义走 `@task-clarify`**：一次通过 skill 调用产出的聚焦澄清问题，比五轮 router 层来回猜测便宜得多。
 
@@ -57,7 +57,7 @@
 
 | 能力                                                | opencode           | Cursor             | Claude Code                                                                    | VS Code + Copilot                            |
 | --------------------------------------------------- | ------------------ | ------------------ | ------------------------------------------------------------------------------ | -------------------------------------------- |
-| 单轮内并发派发 subagent                             | 是（平台内置 `plan`/`build`/`general`/`explore`/`librarian`/`multimodal-looker` 通过 `task` 工具；`task-*` / `job-*` 通过 `skill(name=...)` 按需加载） | 是（内置 `explore`/`bash`/`browser`；自定义 `.cursor/agents/*.md`；嵌套 2 层） | 是（`.claude/agents/*.md`；Task 工具并发调用） | 是（自动扫 `.claude/agents/*.md`；`agent/runSubagent` + `.agent.md` wrapper；开启配置项后嵌套 5 层） |
+| 单轮内并发派发 subagent                             | 部分（平台内置 `plan`/`build`/`general`/`explore`/`librarian`/`multimodal-looker` 通过 `task` 工具可并发；`task-*` / `job-*` 项目角色通过 `skill(name=...)` 加载，在**共享上下文中顺序执行**） | 是（内置 `explore`/`bash`/`browser`；自定义 `.cursor/agents/*.md`；嵌套 2 层） | 是（`.claude/agents/*.md`；Task 工具并发调用） | 是（自动扫 `.claude/agents/*.md`；`agent/runSubagent` + `.agent.md` wrapper；开启配置项后嵌套 5 层） |
 | 后台任务带完成回调 / 通知                           | 是（subagent 派发时 `run_in_background=true`；完成后 `<system-reminder>` 通知） | 是（后台 subagent + `stop`/`subagentStop` hook；Cloud Agent + iOS 推送 / Slack / Live Activity） | 部分（Bash 支持 `run_in_background=true`；无独立后台 subagent 回调） | 是（`chat.notifyWindowOnResponseReceived`；Copilot CLI 后台 session；Hooks Preview） |
 | Agent 模式 / 人格间的自动状态交接                   | 是（父 → 子 subagent 带 continuation session id；`task(task_id=…)` 恢复完整上下文） | 是（父 → 子；本地 ↔ 云；主聊天 ↔ 侧栏聊天带上下文；可按 ID 恢复子 subagent） | 部分（子 subagent 返最终结果给父；父来编排下一次派发） | 是（`handoffs:` frontmatter 可选 `send: true` 自动提交；Session Target 下拉；Continue in Cloud；Plan → Agent） |
 
@@ -223,14 +223,14 @@ Martin Fowler 的《Refactoring》第 3 章列了一组"代码坏味"，稳定�
 
 ### 六阶段证据优先回路
 
-`task-debug` 用六个有序阶段诊断硬 bug。跳阶段只有在明确正当理由下才允许。
+`task-debug` 用六个有序阶段诊断硬 bug。它保持只读，负责建立证据并给出 instrumentation、测试和修复方案；可写执行体负责应用。跳阶段只有在明确正当理由下才允许。
 
 - **第 1 阶段：建反馈回路。** 构造一条命令，这个 bug 在时它红、修好时它绿。回路必须能报红（跑到真正的 bug 代码路径）、确定性（同一判词每次）、快（秒级）、可 agent 单独跑（不用人盯）。**没建回路前不允许进入假设阶段。**
 - **第 2 阶段：复现 + 最小化。** 跑回路看它红。确认是用户提到的那个具体症状，不是附近另一个。一次砍一个元素做最小化；剩下的每个元素必须有承重。
 - **第 3 阶段：假设。** 测任何假设前先列出 3-5 个可证伪的假设并排序。给用户看排序列表；领域知识常常瞬间重排。
-- **第 4 阶段：植入观察。** 先 debugger/REPL，其次针对性日志，绝不"log 一切然后 grep"。一次改一个变量。
-- **第 5 阶段：修 + 回归测试。** **修之前**先在正确 seam 上写好回归测试。
-- **第 6 阶段：清理 + post-mortem。** 原始复现不再复现；回归测试通过；所有 debug 观察点删干净；正确假设写进 commit message。
+- **第 4 阶段：植入观察。** 先 debugger/REPL。需要写文件时，给可写执行体一份针对性 instrumentation 方案。一次只改一个变量。
+- **第 5 阶段：修 + 回归测试。** 在正确 seam 上给出回归测试和最小修复方案。执行体**先写回归测试再修**。
+- **第 6 阶段：清理 + post-mortem。** 重读执行体证据，确认原始复现不再复现、回归测试通过、debug instrumentation 清干净。
 
 第 1 阶段（反馈回路）是整个 skill 的本质；后续阶段一旦回路存在都是机械化步骤。没有回路的调试是猜。
 
@@ -252,11 +252,11 @@ Martin Fowler 的《Refactoring》第 3 章列了一组"代码坏味"，稳定�
 
 ### SHA1 debug 前缀与会话记录文件
 
-每次 `task-debug` debug 会话生成一个 SHA1。SHA1 前 8 位加在本次会话所有 debug 日志行的前缀，形如 `[DEBUG-a3f9c2e1]`。完整 SHA1、时间戳、bug 概述、当前测的假设记入 `spec/debug/<sha1_short>.md`。
+需要写文件做 instrumentation 的 `task-debug` 会话会给出一个 SHA1。可写执行体使用前 8 位作为 `[DEBUG-a3f9c2e1]`，并把脱敏后的会话数据记入 `spec/debug/<sha1_short>.md`。
 
 debug 日志本该是临时的。没有 tag 时清理只能靠肉眼扫。有会话级 tag 后，清理只要一次 grep，`grep -rn "[DEBUG-a3f9c2e1]" | xargs sed -i '/DEBUG-a3f9c2e1/d'`。不会有 debug 日志意外活过一次会话。
 
-任何加了 debug 日志的 `task-debug` 会话。每条加的日志必须带 tag。
+任何需要 debug 日志的 `task-debug` 会话。每条建议的日志必须带 tag。
 
 
 - **无归属的 `console.log("here")`** 留在代码库。debug 噪音就是这么积累的。
@@ -266,7 +266,7 @@ debug 会话 SHA1 前缀 `a3f9c2e1` 时，开发者加 `console.log("[DEBUG-a3f9
 
 ### 战争迷雾制图
 
-`task-strategy` 把大型多会话工作画成一张 issue tracker 上的地图。核心规则是**不能精确描述的东西不上图**。清晰票据之外是雾；在 `Not yet specified` 下松散地记下来，等前沿推进后再让它升级成票据。票据类型分为 `research`（`task-librarian` 解决）、`prototype`（`task-quick-verify` 解决）、`grilling`（`task-clarify` 解决）、`task`（解锁决策的手工活）。
+`task-strategy` 把大型多会话工作画成一张 issue tracker 上的地图。核心规则是**不能精确描述的东西不上图**。清晰票据之外是雾；在 `Not yet specified` 下松散地记下来，等前沿推进后再让它升级成票据。票据类型包括 `research`（`task-librarian` 解决）、`prototype`（`task-quick-verify` 解决）、`grilling`（`task-clarify` 解决）、`task`（解锁决策的手工活）。
 
 过早给模糊区域上规格会凭空发明 scope。承认迷雾是诚实的；这防止团队基于"以后会变的假设"行动。研究或原型解决后，雾会变成清晰票据。
 
@@ -286,7 +286,7 @@ debug 会话 SHA1 前缀 `a3f9c2e1` 时，开发者加 `console.log("[DEBUG-a3f9
 - **logic 分支**：一个终端交互 app 推动状态机跑难以推理的边界。
 - **UI 分支**：同一路由上多套彻底不同的变体，URL 参数切换 + 浮动切换栏。
 
-第一天就是一次性的。一命令启动。无持久化。无测试。无打磨。决定验证过之后 fold 回真实代码；原型 commit 到废弃分支，绝不进 main。
+第一天就是一次性的。一命令启动。无持久化。无测试。无打磨。决定验证过之后 fold 回真实代码。原型不进 main；只有当前用户消息明确要求时才创建废弃分支或 commit。
 
 具体的廉价产物能比任何数量的讨论都快回答很多设计问题。两条分支覆盖了设计不确定性的两种主导形状（行为 vs 视觉）。
 
@@ -404,7 +404,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 #### `task-multi-build`
 
-- **目的**：多域实施者，主动向专家委派。跨多个模块执行改动，并行派子 agent。
+- **目的**：多域实施者，主动向专家委派。跨多个模块执行改动；宿主支持原生 subagent 时并行派发独立专家。
 - **何时进入**：任务跨多个模块或系统，能从委派 `task-explore` / `task-librarian` / `task-judge` / `task-multimodal-looker` 中受益。
 - **方法论**：TDD 纪律、执行中检查点（每 ~3 步派）
 - **硬规则**：不做类型抑制、不吞异常、不做未确认的破坏性 git 动作、不做 bug 修复过程中未请求的重构。
@@ -423,7 +423,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 #### `task-general`
 
-- **目的**：跨不相关系统的多步研究 + 执行，没有专家角色覆盖时的兜底。拆解并并行派专家。
+- **目的**：跨不相关系统的只读混合任务协调器，没有专家角色覆盖时的兜底。拆解并派发专家；只有宿主支持原生 subagent 时才并行。
 - **何时进入**：任务混合研究和执行，跨几个不相关系统，没有单一专家角色能覆盖。
 - **硬规则**：不吞属于 `task-explore`、`task-librarian`、`task-judge`、`task-multimodal-looker` 或 `task-debug` 的专家活；交给他们。
 - **Handoff**：各子任务对应的专家角色；聚合结论后交回用户。
@@ -476,7 +476,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **目的**：只读高权威双轴审计。
 - **何时进入**：跨系统的架构选择、同一 bug 首次修复失败 ≥2 次后、完成重大改动准备宣告 done 前、安全/性能判断题。
 - **方法论**：对抗式审查、Fowler 代码坏味基线
-- **双轴并行跑，永不合并、不重排**：
+- **双轴保持独立，永不合并、不重排**（原生 subagent 工具可并行）：
   - **Standards**：代码是否符合本仓 coding standards 加 Fowler 代码坏味基线？
   - **Spec**：代码是否符合原始 issue / PRD 要求？
 - **硬规则**：不改文件。不做没有具体建议的"你可以考虑..."。永不跨轴合并 findings；一个轴可以通过而另一个失败。
@@ -518,12 +518,12 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 #### `job-verify`
 
-- **目的**: 验证工作是否符合计划和 spec。执行中用 `task-checkpoint`（continue / adjust plan / halt）；执行后用 `task-judge` 做双轴 spec check。比 `job-review` 窄（不做残留 sweep、不做 plan-vs-diff walkthrough）。
-- **入场时机**: 执行中"跑到哪了"；执行后"验证一下"或"审代码"；或者被 `job-build` 每 ~3 步自动派发。
+- **目的**: 通过 `task-checkpoint` 按已批准计划检查执行中工作（continue / adjust plan / halt）。
+- **入场时机**: 执行中"跑到哪了"、执行体出现偏移，或被 `job-build` 每 ~3 步自动派发。
 - **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.2 节
-- **调度规则**: 执行中与执行后是不同的 skill，绝不混用。`task-judge` 两条轴分开归属。`[blocker]` 未清零不给 `SHIP`。本 workflow 不动文件。
-- **交接**: 执行体（`task-yugong` / `task-multi-build`）修 `[blocker]` / `[should-fix]`；`adjust plan` → `job-plan`；`halt` → 用户。
-- **不适用**: 完整的发版前审查（用 `job-review`）。
+- **调度规则**: 不在这里做完成后审查。本 workflow 不动文件。
+- **交接**: `continue` 回执行体（`task-yugong` / `task-multi-build`）；`adjust plan` → `job-plan`；`halt` → 用户。
+- **不适用**: 完成后的综合审查（用 `job-review`）。
 
 #### `job-debug`
 
@@ -536,7 +536,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 #### `job-align`
 
-- **目的**: 代码-文档对齐。`task-explore` 枚举文档中描述实现的地方 → 分类 stale/missing/drift → 用户批准方向 → `task-yugong` / `task-multi-build` 应用编辑 → `task-judge` 再扫。
+- **目的**: 只读代码-文档对齐。`task-explore` 枚举文档中描述实现的地方 → 分类 stale/missing/drift → 用户批准方向 → 持久化已批准报告 → `task-yugong` / `task-multi-build` 应用编辑 → `task-judge` 再扫。
 - **入场时机**: "文档过时"、"对齐一下"、"文档和代码不一致"，或多轮重构后主动跑。
 - **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.2 节
 - **调度规则**: 不动 spec/PRD 类"意图"文档除非用户明确同意。不做整批文本 diff，逐条改保留语义。
@@ -545,7 +545,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 #### `job-review`
 
-- **目的**: 收尾前的完成审查。链路是 `task-challenge`（计划 vs 实际 diff 逐条核对）→ `task-judge`（Standards 轴 + Spec 轴）→ `task-debug` 与 `task-explore` 并行（已知 bug 特征扫描；TODO/FIXME/调试残留扫描）→ 聚合结论。
+- **目的**: 收尾前的完成审查。链路是 `task-challenge`（计划 vs 实际 diff 逐条核对）→ `task-judge`（Standards 轴 + Spec 轴）→ `task-explore`（已知 bug 特征与残留扫描）→ 聚合结论。
 - **入场时机**: 声明任务完成前；开 PR 或合并 PR 前；feature 分支发布前；执行类角色报告收尾之后。
 - **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.2 节
 - **调度规则**: 只读。Standards 与 Spec 两条轴分开归属，绝不合并。只要还有 `[blocker]`，绝不给 `SHIP`。本角色内不"顺手改一下"。
@@ -554,7 +554,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 #### `job-security-review`
 
-- **目的**: 端到端安全审计。链路是 `task-explore`（定位安全敏感面）→ `task-judge` 与 `task-librarian` 并行（OWASP + Fowler 基线审查；外部最佳实践核对）→ 必要时用 `task-debug` 深挖不清楚的漏洞路径 → 聚合结论。
+- **目的**: 端到端安全审计。链路是 `task-explore`（定位安全敏感面）→ 独立的 `task-judge` 与 `task-librarian` 检查（宿主支持时并行）→ 必要时用 `task-debug` 深挖不清楚的漏洞路径 → 聚合结论。
 - **入场时机**: 上线带安全面的代码前（认证、会话、加密、密钥/令牌处理、输入校验、反序列化）；开涉及安全代码的 PR 前；发版周期性巡检；发现安全相关 bug、需先把利用面画清楚再动手修的时候。
 - **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.2 节
 - **调度规则**: 只读。子智能体的发现按来源分列，不跨源合并或重排。`[blocker]` 必须给出具体失效模式。最终结论就一句 `SHIP` / `FIX-THEN-SHIP` / `DO-NOT-SHIP`。
@@ -646,9 +646,9 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
    - (c) checkout 服务在模块级变量里缓存了东西。可证伪的做法是测试间清模块缓存。
    - (d) 一个共享 test fixture 被无关的测试改动了。可证伪的做法是单独跑这个测试。
    给用户看排序列表。用户按领域知识重排："我们最近给 checkout 服务加了 Redis 缓存" → (c) 升到 #1。
-6. **`task-debug` 第 4 阶段**，植入观察。为这次 debug 会话生成一个 SHA1（比如 `a3f9c2e1`）。会话记入 `spec/debug/a3f9c2e1.md` 加上排序假设。加一条 debug 日志 `console.log("[DEBUG-a3f9c2e1] checkout cache state:", cache)`。再跑回路。cache dump 证实假设 (c)。上一次测试的模块级缓存活到了同一进程里的下一次测试。
-7. **`task-debug` 第 5 阶段**（修 + 回归测试）。在正确 seam 上写回归测试（test-suite 级 `afterEach` 断言缓存清空）。看它以正确原因失败（缓存不清）。然后修 checkout 服务暴露 `resetCache()` 方法（或者更好，用依赖注入让缓存 per-instance）。测试套件转绿。
-8. **`task-debug` 第 6 阶段**（清理 + post-mortem）。`grep -rn "[DEBUG-a3f9c2e1]"` 返回一条匹配；删掉。删掉或整理 `spec/debug/a3f9c2e1.md`。重跑原始 `--repeat 500`，0 次失败。commit message 写正确假设"修复 flaky checkout 测试，由模块级 Redis 缓存跨测试运行残留导致。"
+6. **`task-debug` 第 4 阶段**（植入观察）。给出 SHA1 会话 `a3f9c2e1`、脱敏后的 `spec/debug/a3f9c2e1.md` 内容，以及一条针对性日志 `console.log("[DEBUG-a3f9c2e1] checkout cache state:", cache)`。可写执行体应用方案并返回 cache 证据。证据确认假设 (c)，上一次测试的模块级缓存活到了同一进程里的下一次测试。
+7. **`task-multi-build` 第 5 阶段**（修 + 回归测试）。在正确 seam 上写回归测试（test-suite 级 `afterEach` 断言缓存清空）。看它以正确原因失败，然后修 checkout 服务暴露 `resetCache()` 方法（或者更好，用依赖注入让缓存 per-instance）。测试套件转绿。
+8. **`task-debug` 第 6 阶段**（验证清理 + post-mortem）。重读执行体证据。`grep -rn "[DEBUG-a3f9c2e1]"` 返回零条匹配，debug 记录已整理或删除，原始 `--repeat 500` 回路报告 0 次失败。它为将来的 commit 或 PR message 给出正确假设"修复 flaky checkout 测试，由模块级 Redis 缓存跨测试运行残留导致。"
 9. 如果在第 4 阶段发现根因是架构错误（比如共享可变状态在整个代码库大量使用），`task-debug` 会先交给 **`task-judge`** 出架构判断，再由判断圈定修复范围。
 
 **触发的方法论**：循环工程（正确停下而不是加 `sleep`）、六阶段回路、SHA1 标签、TDD（用于回归测试）、对抗式审计（如果升级）。
@@ -661,7 +661,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 **如何开始用这些角色：**
 
-- 读 `AGENTS.md` 第 2 节获取调用速查表。有任务时打 `@task-<role>` 或 `@job-<workflow>` 调用具体角色，或者描述任务让默认角色（`task-yugong`）或 `AGENTS.md` 第 3.0 节的路由规则挑合适的。
+- 读 `AGENTS.md` 第 3.0 节了解语义路由，第 4 节查看角色卡。需要显式指定时输入 `@task-<role>` 或 `@job-<workflow>`；否则描述任务让路由器选择。
 - 不确定用哪个角色时，找第三部分里最接近的场景，跟着链走。
 - 某个方法论用起来陌生时，回第一部分再读那节，找一个小的真实任务试。
 

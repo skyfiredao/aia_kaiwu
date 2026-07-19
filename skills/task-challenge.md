@@ -12,7 +12,7 @@ handoffs:
     prompt: "The plan has been approved by task-challenge. Execute it step by step under full engineering discipline."
   - agent: task-yugong
     label: "Execute (task-yugong)"
-    prompt: "The plan has been approved by task-challenge. Execute it as one scoped task under full engineering discipline: no delegation, one step at a time, verify after each, grind through obstacles."
+    prompt: "The plan has been approved by task-challenge. Execute it as one scoped task under full engineering discipline. Do not delegate; work one step at a time, verify each step, and grind through obstacles."
 ---
 
 # task-challenge
@@ -23,7 +23,7 @@ Remonstrate against a written plan for clarity, completeness, verifiability.
 
 ## Invocation
 
-`@task-challenge` · `/task-challenge`
+`@task-challenge`
 
 ## When to enter
 
@@ -77,4 +77,4 @@ Read the plan as a hostile junior engineer would execute it: assume every step w
 
 ## Handoff
 
-`plan` (to revise) if `needs-revision`, or `build` / `task-yugong` (to execute) if `approve`.
+`task-single-plan` (to revise) if `needs-revision`, or `task-multi-build` / `task-yugong` (to execute) if `approve`.

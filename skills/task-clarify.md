@@ -17,7 +17,7 @@ Pre-plan draft-critique of the user's request itself.
 
 ## Invocation
 
-`@task-clarify` · `/task-clarify`
+`@task-clarify`
 
 ## When to enter
 
@@ -69,4 +69,4 @@ The request the user typed is one candidate solution; the underlying problem is 
 
 ## Handoff
 
-User (to answer the clarifying question) → `plan`.
+User answers the clarifying question, then hand off to `task-single-plan`.

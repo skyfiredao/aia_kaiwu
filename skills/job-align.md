@@ -1,16 +1,16 @@
 ---
 name: job-align
-description: Workflow for aligning documentation with actual code implementation after iterative changes. Enumerates doc touch-points, classifies stale/missing/drift, and applies the alignment edits.
-readonly: false
+description: Read-only workflow for aligning documentation with actual code implementation after iterative changes. Enumerates doc touch-points, classifies stale/missing/drift, obtains approval, and dispatches edits.
+readonly: true
 is_background: false
 agents: [task-explore, task-yugong, task-multi-build, task-judge]
 handoffs:
   - agent: task-yugong
     label: "Apply alignment (task-yugong)"
-    prompt: "Apply the approved doc alignment edits from the report above. Go item-by-item; do not bulk-diff."
+    prompt: "Read the persisted alignment report path provided by the parent. Apply its approved edits item-by-item; do not bulk-diff."
   - agent: task-multi-build
     label: "Apply alignment across modules (task-multi-build)"
-    prompt: "Apply the approved doc alignment edits across multiple modules per the task-multi-build contract. Preserve item-by-item semantics."
+    prompt: "Read the persisted alignment report path provided by the parent. Apply its approved edits across multiple modules under the task-multi-build contract. Preserve item-by-item semantics."
 ---
 
 # job-align
@@ -39,12 +39,15 @@ Bring documentation back into alignment with actual code implementation after it
    - **missing**: code has something not documented
    - **drift**: both exist but descriptions differ
 4. **User-approval gate for per-class direction** (default = docs follow code; exceptions for spec/PRD intent documents where code should follow docs).
-5. **`task-yugong`** (single-scope) or **`task-multi-build`** (multi-file): Apply the approved alignment edits. Go item-by-item.
-6. **`task-judge`**: Re-scan to confirm no residual drift. Standards axis narrowed to doc-code consistency; Spec axis narrowed to whether preserved intent docs match code intent.
-7. Terminate.
+5. Ask the parent or selected writable executor to persist the approved inventory under `spec/align/<sha_short>.md`, then include that path in the executor prompt.
+6. **`task-yugong`** (single-scope) or **`task-multi-build`** (multi-file): Apply the approved alignment edits. Go item-by-item.
+7. **`task-judge`**: Re-scan to confirm no residual drift. Standards axis narrowed to doc-code consistency; Spec axis narrowed to whether preserved intent docs match code intent.
+8. Terminate.
 
 ## Dispatch rules
 
+- Output MUST end with the line `[read-only: no files edited]` as a self-declaration confirming the workflow itself made no file writes.
+- No file edits inside this workflow. Writable executors persist the approved report and apply documentation changes.
 - Never edit spec/PRD-type intent documents without explicit user OK; those may represent design that code should follow, not the reverse.
 - Never use bulk text diff to apply changes; go item-by-item to preserve semantics.
 - Never batch multiple touch-points into a single edit if they describe different concerns.
@@ -76,6 +79,8 @@ Bring documentation back into alignment with actual code implementation after it
 
 ## Post-alignment check (from task-judge)
 <residual drift, if any>
+
+[read-only: no files edited]
 ```
 
 ## Handoff

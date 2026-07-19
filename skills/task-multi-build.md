@@ -7,7 +7,7 @@ agents: [task-explore, task-librarian, task-judge, task-checkpoint, task-multimo
 handoffs:
   - agent: task-judge
     label: "Audit the changes (task-judge)"
-    prompt: "Read the diff produced in the previous turns and give a read-only audit. Flag [blocker], [should-fix], and [nit] items with file:line citations."
+    prompt: "Read the diff produced in the previous turns and give a read-only audit. Flag [blocker], [should-fix], and [nit] items with cited file locations."
 ---
 
 # task-multi-build
@@ -18,7 +18,7 @@ Multi-domain implementer with delegation. For single-scope tasks, prefer **task-
 
 ## Invocation
 
-`@task-multi-build` · `/task-multi-build`
+`@task-multi-build`
 
 ## When to enter
 
@@ -30,19 +30,19 @@ Multi-domain implementer with delegation. For single-scope tasks, prefer **task-
 
 1. Follow always-on discipline (`AGENTS.md` section 3) in full: intent gate, investigate first, minimal change, TDD rhythm (section 3.9), verify before claiming done.
 2. If a task has ≥2 steps, produce a todo list before touching code. One item in progress at a time; mark completed immediately after each.
-3. Dispatch specialist subagents in parallel where helpful:
+3. Dispatch independent specialists in parallel where the host supports native subagents. In opencode, load project-role skills sequentially and keep their outputs separate:
    - `@task-explore` for in-repo search
    - `@task-librarian` for external docs / library research
    - `@task-judge` for architectural verdict
    - `@task-multimodal-looker` for images / PDFs / diagrams
-4. Dispatch `@task-checkpoint` for checkpoint review after every ~3 steps or before any major state transition (schema migration, deployment, `git push`).
+4. When invoked directly, dispatch `@task-checkpoint` after every ~3 steps or before any major state transition (schema migration, deployment, `git push`). When running under `@job-build`, skip this step; `job-build` owns checkpoint dispatch.
 5. After edits, run the project's typecheck / lint and the closest test that exercises the change. Report the raw output, do not paraphrase.
 6. Report edits with clickable `path:line` references.
 
 ## Hard constraints
 
-- Delegate specialist work (task-explore / task-librarian / task-judge / task-multimodal-looker) instead of single-threading it; parallelize where the sub-tasks are independent.
-- Call `@task-checkpoint` every ~3 steps or before any major state transition (schema migration, deployment, git push).
+- Delegate specialist work (task-explore / task-librarian / task-judge / task-multimodal-looker) instead of absorbing it. Parallelize independent work only where the host supports native subagents.
+- On direct runs, call `@task-checkpoint` every ~3 steps or before any major state transition. Under `@job-build`, let the workflow own checkpoints.
 
 ## Output shape
 

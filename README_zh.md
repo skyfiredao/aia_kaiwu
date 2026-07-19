@@ -17,12 +17,12 @@ English version: [README.md](README.md)。
 三层架构（非扁平多 agent 列表）：
 
 - **Layer 1，路由**（`AGENTS.md`）：读用户每条消息；按第 3.0 节的语义分类表分发到对应 workflow / skill。没有关键字表、没有 ask-before-dispatch；不明确的意图路由到 `@task-clarify`。
-- **Layer 2，Workflow**（`skills/job-*.md`，8 个）：把 task skill 串成端到端业务流的多步链（plan-approve-build-review、安全审计、硬 bug 诊断、代码-文档对齐等）。
+- **Layer 2，Workflow**（`skills/job-*.md`，8 个）：把 task skill 串成端到端业务流，负责审批门和状态交接，并可持久化已批准的编排产物。
 - **Layer 3，Task**（`skills/task-*.md`，14 个）：原子操作的具体行为契约。每个 task 做好一件事。
 
-**对便宜模型友好。** Router 是语义分类表；workflow 是编号分发链；task 都带机器可判 done predicate；预算有界（`task-yugong` 单会话上限 13 basket）。便宜模型也能跑通完整 workflow：成功判据明确、成本低、停止条件可预测。
+**对便宜模型友好。** Router 是语义分类表；workflow 是编号分发链；执行类 task 使用机器可判 done predicate；只读 task 返回结构化判词；预算有界（`task-yugong` 单会话上限 13 basket）。
 
-完整设计走查：[`INTRODUCTION.md`](INTRODUCTION.md) → "设计总览：三层架构"。
+完整设计走查见 [`INTRODUCTION_zh.md`](INTRODUCTION_zh.md) 的“设计总览：三层架构”。
 
 ## 目录结构
 
@@ -32,6 +32,7 @@ English version: [README.md](README.md)。
 ├── CLAUDE.md → AGENTS.md                  ← 软链接（Claude Code）
 ├── README.md                              ← 英文版说明
 ├── README_zh.md                           ← 本文件
+├── windows_setup.ps1                      ← Windows 工作区安装脚本
 ├── skills/                                ← 单一权威角色定义
 │   ├── task-single-plan.md
 │   ├── task-multi-build.md
@@ -46,7 +47,18 @@ English version: [README.md](README.md)。
 │   ├── task-quick-verify.md
 │   ├── task-debug.md
 │   ├── task-strategy.md
-│   └── task-yugong.md
+│   ├── task-yugong.md
+│   ├── job-plan.md
+│   ├── job-build.md
+│   ├── job-verify.md
+│   ├── job-debug.md
+│   ├── job-align.md
+│   ├── job-review.md
+│   ├── job-security-review.md
+│   └── job-debug-deep.md
+├── .opencode/
+│   └── skills/
+│       └── <slug>/SKILL.md                ← 软链接 → ../../../skills/<slug>.md
 ├── .claude/
 │   └── agents/                            ← 软链接 → ../../skills/*.md
 └── .cursor/
@@ -55,7 +67,7 @@ English version: [README.md](README.md)。
     └── agents/                            ← 软链接 → ../../skills/*.md
 ```
 
-改 `skills/<role>.md` 或 `AGENTS.md`，`.claude/agents/`、`.cursor/agents/`、`CLAUDE.md → AGENTS.md` 下的软链接会自动同步。
+改 `skills/<role>.md` 或 `AGENTS.md`，`.claude/agents/`、`.cursor/agents/`、`.opencode/skills/*/SKILL.md`、`CLAUDE.md → AGENTS.md` 下的软链接会自动同步。
 
 ## 安装
 
@@ -114,7 +126,11 @@ git clone <source-repo-url> source-repo
 
 如果 PowerShell 执行策略拦截脚本：`powershell -ExecutionPolicy Bypass -File .\aia_kaiwu\windows_setup.ps1`。
 
-以后拉 aia_kaiwu 上游更新：直接重跑 `.\aia_kaiwu\windows_setup.ps1` 即可，脚本会自动 `git pull` aia_kaiwu 目录。
+以后拉 aia_kaiwu 上游更新，重跑 `.\aia_kaiwu\windows_setup.ps1`。脚本会自动拉取更新，并在替换生成配置前询问；无人值守时加 `-Force`。
+
+> **注意：** `windows_setup.ps1` 会替换生成的 `AGENTS.md`、`CLAUDE.md`、`skills/`、`.claude/agents/`、`.cursor/agents/`、`.opencode/skills/` 和 `.cursor/rules/agents.mdc`。其他 `.cursor/rules/` 文件会保留。`aia_kaiwu\` clone 是权威来源；不要手动编辑生成的副本。
+
+脚本拒绝把磁盘根目录或 Git repo 作为目标；会显示安装的源码 revision，并在 `aia_kaiwu\` checkout 有本地修改时给出警告。
 
 日常使用：AI 工具打开 workspace 根目录（macOS / Linux 是 `~/workspace`，Windows 是 `C:\workspace`）。手动 git 操作时 cd 到 `source-repo/`。
 
@@ -142,10 +158,10 @@ git clone <source-repo-url> source-repo
 
 上面任何一个工具加载 `AGENTS.md` 之后，助手默认就在 **aia_kaiwu 角色生态**里：
 
-- 当前角色是 `task-yugong`（Auto-Loop：单一有界任务、不委派、坚持到验证通过）。
+- 当前角色是 `task-yugong`（单一有界任务、不委派、坚持到验证通过）。
 - 内部派发只走 `task-*` 和 `job-*` 子 agent。平台自带的 `plan` / `build` / `general` / `explore` / `librarian` / `multimodal-looker` 不会被当作快捷方式使用。
 - 用户显式指定会覆盖默认：`@plan` 走 opencode 平台的 plan agent；`@task-single-plan` 走本项目严格版 plan。
-- 如果消息更适合另一个自定义角色（`task-clarify` 处理歧义、`task-single-plan` 做架构、`task-explore` 找代码等），助手按 `AGENTS.md` 第 2 节的 rule of thumb 一句话说明后切换。
+- 如果消息更适合另一个自定义角色（`task-clarify` 处理歧义、`task-single-plan` 做架构、`task-explore` 找代码等），助手按 `AGENTS.md` 第 3.0 节的语义路由表切换。
 
 完整规则：`AGENTS.md` 第 3.0 节。
 
@@ -166,12 +182,12 @@ opencode 原生把根目录的 `AGENTS.md` 作为 always-on 指令加载。
 
 1. 在支持 opencode 协议的客户端打开这个 workspace。
 2. 问："你现在在按 AGENTS.md 的什么规则做事？"
-3. 期望 AI 回答：默认状态是 `task-yugong`（Auto-Loop，单一有界任务，不委派），出自 AGENTS.md 第 3.0 节。
+3. 期望 AI 回答：默认状态是 `task-yugong`（单一有界任务，不委派），出自 AGENTS.md 第 3.0 节。
 4. 给一个界定清楚的实现任务；期望 AI 按 `task-yugong` 契约执行（先出 todo，每步验证，scope 变大就停下汇报）。
 
 ### 已知限制
 
-- 没有 `@task-<role>` / `@job-<workflow>` 显式派发。用户描述任务，AI 路由。
+- 没有原生 `@task-<role>` / `@job-<workflow>` 子 agent 派发。这些名字仍可作为文本级角色指定，由 AI 在父上下文映射成 `skill(name="<role>")`。
 - `task` 工具里没有 `subagent_type="task-<role>"` 或 `subagent_type="job-<workflow>"`。通过 `task` 派发的子 agent 用的是 opencode 平台内置角色（`plan`、`build`、`general`、`explore`、`librarian`、`multimodal-looker`），不带 `task-*` / `job-*` 的严格契约。
 - Skill 按需加载而不是 always-on；长会话可能需要中途重新 `skill(name="task-<role>")` 或 `skill(name="job-<workflow>")`。
 
@@ -366,19 +382,19 @@ Reference: <https://code.visualstudio.com/docs/agents/reference/ai-settings>
 
 如果它能列出所有角色（`task-single-plan`、`task-multi-build`、`task-general`、`task-explore`、`task-librarian`、`task-multimodal-looker`、`task-judge`、`task-clarify`、`task-challenge`、`task-checkpoint`、`task-quick-verify`、`task-debug`、`task-strategy`、`task-yugong`、`job-plan`、`job-build`、`job-verify`、`job-debug`、`job-align`、`job-review`、`job-security-review`、`job-debug-deep`），并把 `task-challenge` 描述为**计划批评者**这类含义，说明配置已加载。
 
-对 **opencode**、**Cursor**、**Claude Code**、**VS Code + Copilot** 还要额外测原生 subagent 派发：
+对 **Cursor**、**Claude Code**、**VS Code + Copilot** 还要额外测原生 subagent 派发：
 
 > "并行 `@task-explore` 和 `@task-librarian`：在本仓库找 `foo()` 的调用点；同时找 `bar` 库的官方 API 文档。"
 
-如果聊天里出现两个并排的 subagent 气泡各自独立完成，说明原生 subagent编排生效。如果只出现一次顺序回答，要么工具版本过老，要么`.cursor/agents/` 或 `.claude/agents/` 没装进去。
+如果聊天里出现两个并排的 subagent 气泡各自独立完成，说明原生 subagent 编排生效。opencode 的项目角色以 skill 载入，在父上下文顺序执行，应分别测试每个角色。
 
 ## 更新配置
 
 `AGENTS.md` 和 `skills/<role>.md` 是权威：
 
-1. **改角色行为 / 纪律 / 角色卡正文** → 直接改 `skills/<role>.md`（或改 `AGENTS.md` 第 3 节里的共享纪律）。`.claude/agents/`、`.cursor/agents/`、`CLAUDE.md` 下的软链接会自动同步。
+1. **改角色行为 / 纪律 / 角色卡正文** → 直接改 `skills/<role>.md`（或改 `AGENTS.md` 第 3 节里的共享纪律）。`.claude/agents/`、`.cursor/agents/`、`.opencode/skills/*/SKILL.md`、`CLAUDE.md` 下的软链接会自动同步。
 2. **改角色的可用工具、model、handoff 目标、可调 subagent 白名单** → 改 `skills/<role>.md` 顶端的 frontmatter。各家原生工具都通过软链接读同一份 frontmatter。
-3. **加或删一个角色** → 先改 `AGENTS.md` 第 2 节速查表和第 4 节角色卡；增删 `skills/<role>.md`；在 `.claude/agents/` 和 `.cursor/agents/` 里对应地增删软链接。
+3. **加或删一个角色** → 先改 `AGENTS.md` 第 3.0 节路由表和第 4 节角色卡；增删 `skills/<role>.md`；在 `.claude/agents/`、`.cursor/agents/`、`.opencode/skills/` 里对应地增删投影。
 4. `.cursor/rules/agents.mdc` 里是 `@AGENTS.md` 引用，只有当你要改它自己的指路片段时才需要动它。
 
 ## 角色
@@ -397,12 +413,12 @@ Reference: <https://code.visualstudio.com/docs/agents/reference/ai-settings>
 | [`task-strategy`](skills/task-strategy.md) | 多会话决策票据地图。每会话 1 张非 research 票。 |
 | [`task-multi-build`](skills/task-multi-build.md) | 多领域实施者，向专家委派。 |
 | [`task-yugong`](skills/task-yugong.md) | **默认**。单一 scope 任务，不委派，磨到验证通过。 |
-| [`task-general`](skills/task-general.md) | 无专家匹配时的多步 research + execution 兜底。 |
+| [`task-general`](skills/task-general.md) | 无专家匹配时的只读混合任务协调器。 |
 | [`task-explore`](skills/task-explore.md) | 本仓库内的上下文 grep。 |
 | [`task-librarian`](skills/task-librarian.md) | 外部文档、OSS repo、第一方 API；只用第一手来源。 |
 | [`task-multimodal-looker`](skills/task-multimodal-looker.md) | 从图片、PDF、图表里描述或抽取信息。 |
 | [`task-judge`](skills/task-judge.md) | 双轴审查（Standards + Spec，两轴独立不合并）。 |
-| [`task-debug`](skills/task-debug.md) | 六阶段证据优先硬 bug 诊断回路。 |
+| [`task-debug`](skills/task-debug.md) | 只读六阶段证据优先硬 bug 诊断回路。 |
 
 **Workflow**（`job-*`，串接原子 skill）：
 
@@ -410,7 +426,7 @@ Reference: <https://code.visualstudio.com/docs/agents/reference/ai-settings>
 |---|---|
 | [`job-plan`](skills/job-plan.md) | clarify → plan → challenge → approve → 持久化 plan artifacts 到 `spec/<slug>/`。 |
 | [`job-build`](skills/job-build.md) | 在 TDD 下执行已批准计划，每 ~3 步 checkpoint。 |
-| [`job-verify`](skills/job-verify.md) | 执行中检查点或执行后 spec check。 |
+| [`job-verify`](skills/job-verify.md) | 按已批准计划做执行中检查。 |
 | [`job-debug`](skills/job-debug.md) | 首轮 bug 诊断；硬 bug 自动升级到 `job-debug-deep`。 |
 | [`job-align`](skills/job-align.md) | 文档与代码对齐。 |
 | [`job-review`](skills/job-review.md) | 完成前审查：challenge → judge → sweep。 |

@@ -3,20 +3,20 @@ name: task-strategy
 description: Multi-session wayfinding for work bigger than one context. Charts a map of decision tickets on the issue tracker, then resolves one ticket per session until the way to the destination is clear.
 readonly: false
 is_background: false
-agents: [task-librarian, task-quick-verify, task-clarify]
+agents: [task-librarian, task-quick-verify, task-clarify, task-single-plan]
 handoffs:
   - agent: task-clarify
     label: "Grill destination (task-clarify)"
-    prompt: "Junshi needs to name the destination for this multi-session effort. Grill the user task-clarify-style, one question at a time, until the destination is precise."
+    prompt: "task-strategy needs to name the destination for this multi-session effort. Grill the user task-clarify-style, one question at a time, until the destination is precise."
   - agent: task-librarian
     label: "Resolve research ticket (task-librarian)"
-    prompt: "Resolve the current wayfinder:research ticket. Return findings with primary-source citations."
+    prompt: "Resolve the current research ticket under the wayfinder protocol. Return findings with primary-source citations."
   - agent: task-quick-verify
     label: "Resolve prototype ticket (task-quick-verify)"
-    prompt: "Resolve the current wayfinder:prototype ticket by building a throwaway prototype (logic or UI branch) that answers the ticket's design question."
+    prompt: "Resolve the current prototype ticket under the wayfinder protocol by building a throwaway prototype (logic or UI branch) that answers the ticket's design question."
   - agent: task-single-plan
     label: "Plan execution of a task ticket (task-single-plan)"
-    prompt: "The current wayfinder:task ticket is ready for a concrete plan. Produce a numbered implementation plan scoped to that ticket only, then hand back so task-strategy can resolve the ticket in a fresh session."
+    prompt: "The current task ticket under the wayfinder protocol is ready for a concrete plan. Produce a numbered implementation plan scoped to that ticket only, then hand back so task-strategy can resolve the ticket in a fresh session."
 ---
 
 # task-strategy
@@ -27,7 +27,7 @@ Chart a large multi-session effort as a shared map of decision tickets. Resolve 
 
 ## Invocation
 
-`@task-strategy` · `/task-strategy`
+`@task-strategy`
 
 ## When to enter
 
@@ -57,4 +57,4 @@ Chart a large multi-session effort as a shared map of decision tickets. Resolve 
 
 ## Handoff
 
-Dispatch subagents per ticket type (`@task-librarian`, `@task-quick-verify`, `@task-clarify`); return to user at end of each session.
+Dispatch subagents per ticket type (`@task-librarian`, `@task-quick-verify`, `@task-clarify`, `@task-single-plan`); return to user at end of each session.

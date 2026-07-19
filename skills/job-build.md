@@ -3,7 +3,7 @@ name: job-build
 description: Workflow for executing an approved plan under TDD discipline with mid-execution checkpoints and a pre-completion review. Routes to task-yugong (single-scope) or task-multi-build (multi-module).
 readonly: false
 is_background: false
-agents: [task-yugong, task-multi-build, task-checkpoint, task-judge]
+agents: [task-yugong, task-multi-build, task-checkpoint]
 handoffs:
   - agent: job-review
     label: "Pre-completion review (job-review)"
@@ -24,16 +24,17 @@ Execute an approved plan under TDD discipline, gate every ~3 steps with checkpoi
 ## Steps
 
 1. Read the approved plan. If invoked from `job-plan`, read `spec/<slug>/plan.md` from disk (and consult `spec/<slug>/design.md` / `guide.md` when present). If the plan was provided inline, use that. Confirm scope with the user if unclear.
-2. Choose executor:
+2. **gate: user approves execution start.** Restate the plan scope and executor choice in one paragraph, then wait for explicit user OK ("start" / "go" / "execute" / "开始" / "开工"). Do not dispatch any executor or write any file before this OK.
+3. Choose executor:
    - Single-scope task (one module, one clear goal) → **`task-yugong`**
    - Multi-module task (spans several modules, benefits from specialist delegation) → **`task-multi-build`**
-3. TDD rhythm inside the executor: red → green → refactor, one behavior at a time, tests at seams.
-4. Every ~3 steps of execution, or before any major state transition (schema migration, deploy, `git push`): **`task-checkpoint`**.
-5. On checkpoint verdict:
+4. TDD rhythm inside the executor: red → green → refactor, one behavior at a time, tests at seams.
+5. Every ~3 steps of execution, or before any major state transition (schema migration, deploy, `git push`): **`task-checkpoint`**.
+6. On checkpoint verdict:
    - `continue` → executor resumes
    - `adjust plan` → return to `job-plan` step 3 (revise plan)
    - `halt` → stop and report to user; do not proceed
-6. On executor completion → handoff to `job-review` for the pre-completion audit.
+7. On executor completion → handoff to `job-review` for the pre-completion audit.
 
 ## Dispatch rules
 
@@ -41,6 +42,7 @@ Execute an approved plan under TDD discipline, gate every ~3 steps with checkpoi
 - Never silently expand scope; if the task turns out larger than planned, stop and report.
 - Never skip the checkpoint after a major state transition.
 - Never apply "quick fixes" outside the plan; deviations require plan revision.
+- Never dispatch an executor or write any file before the step 2 start gate is passed.
 
 ## Output shape
 

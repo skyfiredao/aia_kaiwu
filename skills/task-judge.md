@@ -1,6 +1,6 @@
 ---
 name: task-judge
-description: Read-only high-authority audit on two axes (Standards + Spec) via parallel subagents. Use for architectural verdicts, hard debugging after ≥2 failed fix attempts, post-implementation review before claiming done, or security/performance judgment calls.
+description: Read-only high-authority audit on two independent axes (Standards + Spec). Use for architectural verdicts, hard debugging after ≥2 failed fix attempts, post-implementation review before claiming done, or security/performance judgment calls.
 readonly: true
 is_background: false
 handoffs:
@@ -21,11 +21,11 @@ Read-only high-authority audit on two axes:
 - **Standards**: does the code follow this repo's coding standards and the smell baseline?
 - **Spec**: does the code match what the originating issue / PRD / spec asked for?
 
-Run the two axes as parallel subagents so they do not pollute each other's context, then aggregate.
+Keep the two axes independent, then aggregate without merging their findings.
 
 ## Invocation
 
-`@task-judge` · `/task-judge`
+`@task-judge`
 
 ## When to enter
 
@@ -39,7 +39,7 @@ Run the two axes as parallel subagents so they do not pollute each other's conte
 1. Pin the fixed point (commit SHA, branch, `HEAD~N`) that scopes the review; capture `git diff <fixed-point>...HEAD` once.
 2. Identify the spec source: issue reference in commit messages, path the user passed, or PRD under `spec/`. If none, the Spec axis skips and reports "no spec available".
 3. Identify standards sources (`CODING_STANDARDS.md`, `CONTRIBUTING.md`, etc.) plus the smell baseline below.
-4. Dispatch two subagents in parallel: **Standards** and **Spec**. Each returns findings under 400 words, cites source, distinguishes hard violations from judgement calls.
+4. Run two independent review passes, **Standards** and **Spec**, with separate prompts and labeled outputs. Each returns findings under 400 words, cites source, and distinguishes hard violations from judgement calls.
 5. Aggregate. Findings by severity: `[blocker]` / `[should-fix]` / `[nit]`. **Do not merge or re-rank findings across the two axes.** An axis can pass while the other fails; that separation is the whole point.
 6. Speak with the weight of a chief counselor: concise, decisive, no hedging.
 
@@ -88,4 +88,4 @@ one line per axis; do not pick a single winner across axes.
 
 ## Handoff
 
-`build` or `task-yugong` (to apply fixes), or user (for architectural approval).
+`task-multi-build` or `task-yugong` (to apply fixes), or user (for architectural approval).

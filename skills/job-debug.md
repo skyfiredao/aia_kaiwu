@@ -7,7 +7,7 @@ agents: [task-debug, task-yugong]
 handoffs:
   - agent: task-yugong
     label: "Apply the fix (task-yugong)"
-    prompt: "Apply the fix identified in Phase 5 of the diagnosis above. Write the regression test at the identified seam before the fix."
+    prompt: "Read the diagnostic artifact path supplied by the parent. Apply its Phase 5 fix and write the regression test at the identified seam before the fix."
   - agent: job-debug-deep
     label: "Escalate to hard-bug workflow (job-debug-deep)"
     prompt: "The first-pass fix did not resolve the bug or the bug shows chained symptoms / flaky behavior. Escalate to job-debug-deep for full six-phase diagnosis."
@@ -45,9 +45,9 @@ Do **not** enter for:
    - `[repeated failure]`: the user reports this bug already resisted a prior fix attempt
    
    Otherwise (single dominant hypothesis, single-file fix, first attempt) → proceed to step 5.
-5. **`task-debug`**: Phase 4-5 lite, minimal instrumentation, write regression test at correct seam **before** the fix.
-6. **`task-yugong`**: Apply the fix. Verify the Phase 1 loop is now green.
-7. Cleanup: remove any debug scaffolding; commit with the correct hypothesis in the message.
+5. **`task-debug`**: Phase 4-5 lite, specify minimal instrumentation, the regression test seam, and the minimal fix.
+6. **`task-yugong`**: Apply the instrumentation plan if needed, create the redacted debug record, write the regression test before the fix, apply the fix, remove debug scaffolding, and verify the Phase 1 loop is green.
+7. **`task-debug`**: Run Phase 6 as a read-only verification pass. Confirm the repro stays green, the regression test passes, debug scaffolding is gone, and the correct hypothesis is ready for a future commit or PR message. Commit only if the current user message asks.
 
 ## Dispatch rules
 

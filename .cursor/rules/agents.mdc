@@ -9,13 +9,14 @@ Load the full rules from @AGENTS.md and follow them as your operating instructio
 
 ## Roles
 
-The invocation cheat sheet (all roles, purpose, triggers) lives in @AGENTS.md section 2. Full behavior contracts live in `skills/<role>.md` and are mounted as native subagents at `.cursor/agents/<role>.md`.
+Semantic routing lives in @AGENTS.md section 3.0; the full role index lives in section 4. Behavior contracts live in `skills/<role>.md` and are mounted as native subagents at `.cursor/agents/<role>.md`.
 
-Two explicit trigger forms are supported: `@name` and `/name`. Prefer the `@`-form in Cursor because it composes with Cursor's mention syntax and resolves to the real subagent files under `.cursor/agents/`. When no explicit trigger is given, the assistant infers the correct role from message content per the rule of thumb in @AGENTS.md section 2.
+Use `@name` for explicit role selection in Cursor; it resolves to the native subagent under `.cursor/agents/`. When no explicit trigger is given, the assistant infers the correct role from the semantic routing table in @AGENTS.md section 3.0.
 
 ## Reference sections in @AGENTS.md
 
-- Section 2: invocation cheat sheet.
+- Section 3.0: semantic routing table and default dispatch.
+- Section 3.0.1: tool-specific behavior (dispatch, workflow chain semantics, platform disambiguation).
 - Section 3: always-on workflow discipline (intent gate, verification, type-safety hard blocks, TDD, git discipline).
 - Section 4: role card index with links into `skills/<role>.md`.
 - Section 5: multi-agent orchestration chains.

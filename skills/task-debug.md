@@ -6,13 +6,13 @@ is_background: false
 handoffs:
   - agent: task-multi-build
     label: "Apply fix (task-multi-build)"
-    prompt: "Apply the Phase 5 fix from the task-debug diagnostic above. Confirm the regression test passes and the original repro no longer reproduces."
+    prompt: "Read the diagnostic artifact path supplied by the parent (use `spec/debug/<sha_short>.md` when instrumentation is needed). Apply the Phase 5 regression test and fix, then confirm the original repro no longer reproduces."
   - agent: task-yugong
     label: "Apply fix (task-yugong)"
-    prompt: "Apply the Phase 5 fix from the task-debug diagnostic above under Auto-Loop discipline."
+    prompt: "Read the diagnostic artifact path supplied by the parent (use `spec/debug/<sha_short>.md` when instrumentation is needed). Apply the Phase 5 regression test and fix under the task-yugong contract."
   - agent: task-judge
     label: "Escalate (architectural root cause)"
-    prompt: "Chongshi identified an architectural root cause. Read the diagnostic above and issue a task-judge verdict on the design change needed."
+    prompt: "task-debug identified an architectural root cause. Read the diagnostic artifact path supplied by the parent and issue a task-judge verdict on the design change needed."
 ---
 
 # task-debug
@@ -23,7 +23,7 @@ Diagnose hard bugs and performance regressions through a six-phase evidence-firs
 
 ## Invocation
 
-`@task-debug` · `/task-debug`
+`@task-debug`
 
 ## When to enter
 
@@ -37,15 +37,18 @@ Diagnose hard bugs and performance regressions through a six-phase evidence-firs
 1. **Phase 1, build a feedback loop.** Construct one command that goes **red on this bug** and green when fixed. The loop must be **red-capable** (drives the actual bug code path, asserts the user's exact symptom), **deterministic** (same verdict every run; for flaky bugs, raise reproduction rate high enough to debug against), **fast** (seconds), and **agent-runnable** (unattended). Try, in this order, failing test at a seam, curl / HTTP script, CLI invocation with fixture, headless browser (Playwright), replay a captured trace, throwaway harness, property / fuzz loop, bisection harness, differential loop, HITL bash script (last resort). **Do not proceed to hypotheses without a loop.**
 2. **Phase 2, reproduce + minimise.** Run the loop, watch it go red. Confirm it is the user's exact symptom, not a nearby different failure. Shrink the repro one element at a time; every remaining element must be load-bearing.
 3. **Phase 3, hypothesise.** Generate **3-5 ranked hypotheses** before testing any. Each must be **falsifiable**: "if X is the cause, then changing Y makes the bug disappear". Show the ranked list to the user; they often re-rank instantly with domain knowledge.
-4. **Phase 4, instrument.** Debugger / REPL first, targeted logs second, never "log everything and grep". **Generate a SHA1 for this debug session** and record it in `spec/debug/<sha1_short>.md` (full SHA1, timestamp, bug summary, hypothesis under test). Use the first 8 chars of the SHA1 as the tag prefix on every added debug log line: `[DEBUG-<sha1_short>]`. Change one variable at a time. For perf: measure first with a baseline, then bisect.
-5. **Phase 5, fix + regression test.** Write the regression test **before the fix** at a correct seam (one that exercises the real bug pattern). If no correct seam exists, note it as an architectural finding; do not settle for a shallow test that gives false confidence.
-6. **Phase 6, cleanup + post-mortem.** Original repro no longer reproduces. Regression test passes (or absence of seam is documented). All `[DEBUG-<sha1_short>]` instrumentation removed via grep. Update or delete `spec/debug/<sha1_short>.md` accordingly (keep it if the findings are worth preserving; delete if the session was ephemeral). Throwaway prototypes deleted. Correct hypothesis stated in the commit / PR message.
+4. **Phase 4, instrument.** Debugger / REPL first. If file changes are required, output an instrumentation plan for the writable workflow or executor. The plan names a SHA1 session tag, `spec/debug/<sha1_short>.md`, targeted `[DEBUG-<sha1_short>]` log lines, and one variable to change at a time. For perf, specify the baseline and bisection method.
+5. **Phase 5, fix + regression test.** Specify the regression test and minimal fix at a correct seam, then hand them to `task-yugong` or `task-multi-build`. The executor writes the failing test before the fix. If no correct seam exists, report an architectural finding instead of proposing a shallow test.
+6. **Phase 6, cleanup + post-mortem.** After the executor finishes, re-read the evidence. Confirm the original repro no longer reproduces, the regression test passes, all `[DEBUG-<sha1_short>]` instrumentation is gone, and `spec/debug/<sha1_short>.md` is either curated or deleted. State the correct hypothesis for the commit / PR message.
 
 ## Hard constraints
 
+- Output MUST end with the line `[read-only: no files edited]` as a self-declaration confirming no file writes occurred.
+- No file edits. Writable workflows or executors apply the instrumentation, regression test, and fix.
+- Every proposed debug note and log line must redact secrets, API tokens, credentials, private keys, and PII with `<redacted:kind>` placeholders.
 - No jumping to hypotheses without a red-capable loop.
 - No shotgun debugging.
-- No debug logs without a SHA1-prefixed tag and matching `spec/debug/<sha1_short>.md` record.
+- Never propose debug logs without a SHA1-prefixed tag and matching redacted `spec/debug/<sha1_short>.md` record.
 - No declaring done without re-running the original repro.
 
 ## Output shape
@@ -61,16 +64,18 @@ Diagnose hard bugs and performance regressions through a six-phase evidence-firs
 1. <hypothesis>, falsifiable prediction
 ...
 
-## Phase 4 findings
-<what the probes revealed>
+## Phase 4 instrumentation plan
+<read-only probes + proposed SHA1 session, redacted notes, and targeted logs for the executor>
 
-## Phase 5 fix
-<regression test + fix + verification>
+## Phase 5 proposed fix
+<regression test seam + minimal fix for the executor>
 
-## Phase 6 cleanup
-<checklist> + post-mortem "what would have prevented this"
+## Phase 6 verification
+<executor evidence checklist> + post-mortem "what would have prevented this"
+
+[read-only: no files edited]
 ```
 
 ## Handoff
 
-`build` or `task-yugong` (for the fix), or `task-judge` if root cause is architectural.
+`task-multi-build` or `task-yugong` (for the fix), or `task-judge` if root cause is architectural.

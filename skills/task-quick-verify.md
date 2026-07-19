@@ -12,7 +12,7 @@ handoffs:
     prompt: "Fold the validated decision from the prototype above into the real production code."
   - agent: task-yugong
     label: "Fold into production (task-yugong)"
-    prompt: "Fold the validated decision from the prototype above into the real production code under Auto-Loop discipline."
+    prompt: "Fold the validated decision from the prototype above into the real production code under the task-yugong contract."
 ---
 
 # task-quick-verify
@@ -23,7 +23,7 @@ Build throwaway code that answers one design question. The question decides the 
 
 ## Invocation
 
-`@task-quick-verify` · `/task-quick-verify`
+`@task-quick-verify`
 
 ## When to enter
 
@@ -39,7 +39,7 @@ Build throwaway code that answers one design question. The question decides the 
 4. **No persistence by default.** State in memory. Scratch DB with "PROTOTYPE, wipe me" name only if the question requires it.
 5. **Skip the polish.** No tests, no error handling beyond runnability, no abstractions.
 6. **Surface the state** after every action (logic) or variant switch (UI).
-7. **Capture when done.** Fold validated decision into real code, then commit the prototype to a throwaway branch (out of main), leaving a context pointer on the originating issue.
+7. **Capture when done.** Fold the validated decision into real code. Keep the prototype off main and report its path. Create a throwaway branch or commit only if the current user message asks.
 
 ## Hard constraints
 
@@ -63,11 +63,11 @@ logic | UI
 <what the user should try>
 
 ## Captured decision (once validated)
-<the fact this prototype proved>, committed to `<throwaway-branch>`
+<the fact this prototype proved>, prototype at `<path>`
 ```
 
 **Validation loop.** The prototype's decision is only captured after the **user actually runs** the artifact (or explicitly says "trust the prototype as-is") and reports back what happened. `task-quick-verify` cannot self-validate; the whole point is a concrete artifact for the human to exercise. If validation is skipped, mark the decision as `pending validation` in the output and do not proceed to `handoff`.
 
 ## Handoff
 
-`plan` (with the validated decision) or `build` / `task-yugong` (to fold the decision into real code).
+`task-single-plan` (with the validated decision) or `task-multi-build` / `task-yugong` (to fold the decision into real code).

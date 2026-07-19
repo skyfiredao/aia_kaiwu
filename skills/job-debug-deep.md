@@ -7,10 +7,10 @@ agents: [task-debug, task-librarian, task-judge, task-yugong, task-multi-build]
 handoffs:
   - agent: task-yugong
     label: "Apply the fix (task-yugong)"
-    prompt: "Apply the Phase 5 fix from the diagnosis above as one scoped task. Write the regression test at the seam identified in Phase 5 before the fix. Grind until verified."
+    prompt: "Read the `spec/debug/<sha1_short>.md` path supplied by the parent. Apply its Phase 5 fix as one scoped task and write the regression test at the identified seam before the fix. Grind until verified."
   - agent: task-multi-build
     label: "Apply the fix (task-multi-build)"
-    prompt: "Apply the Phase 5 fix from the diagnosis above. If the fix spans multiple modules, dispatch specialists per the task-multi-build contract. Write the regression test at the seam identified in Phase 5 before the fix."
+    prompt: "Read the `spec/debug/<sha1_short>.md` path supplied by the parent. Apply its Phase 5 fix. If the fix spans multiple modules, dispatch specialists per the task-multi-build contract. Write the regression test at the identified seam before the fix."
   - agent: task-judge
     label: "Post-fix audit (task-judge)"
     prompt: "Two-axis audit on the fix diff. Confirm the fix addresses the correct hypothesis and does not introduce Standards-axis regressions."
@@ -31,7 +31,7 @@ Drive `task-debug` end-to-end through the six-phase evidence-first loop, escalat
 
 Straightforward first fixes go to `task-debug` (dispatched by `job-debug`) directly; this workflow is for the hard ones.
 
-Optional argument: `<bug-description>`: short description of the symptom (e.g., "checkout test fails 3/100 on CI").
+Optional argument `<bug-description>` is a short description of the symptom (e.g., "checkout test fails 3/100 on CI").
 
 ## Steps
 
@@ -39,9 +39,9 @@ Optional argument: `<bug-description>`: short description of the symptom (e.g., 
 2. **`task-debug`**: Phase 2, reproduce + minimise. Confirm the loop reproduces the user's exact symptom; shrink to smallest scenario that still fails.
 3. **`task-debug`**: Phase 3, 3–5 ranked falsifiable hypotheses. Show the ranked list to the user.
    - **Optional parallel skill: `task-librarian`** if any hypothesis depends on external knowledge (library internals, protocol spec, framework quirk); primary sources only, cited.
-4. **`task-debug`**: Phase 4, instrument. Debugger/REPL first, targeted logs second. Generate a SHA1 for the session; record it in `spec/debug/<sha1_short>.md`. Every added debug log line carries `[DEBUG-<sha1_short>]` prefix. Change one variable at a time.
+4. **`task-debug`**: Phase 4, produce the instrumentation plan. Debugger/REPL first, targeted logs second. Name the SHA1 session, redacted `spec/debug/<sha1_short>.md` content, tagged log lines, and the one variable to change.
    - **Optional escalation skill: `task-judge`** if instrumentation reveals the root cause is architectural (shared mutable state used pervasively, wrong layering, spec ambiguity); the fix scope is then set by the audit before any code change.
-5. **Handoff for Phase 5** (fix + regression test). Write the regression test at a correct seam **before** the fix. Hand off:
+5. **Handoff for Phase 5** (instrumentation + fix + regression test). The executor first persists the full diagnostic and instrumentation plan to `spec/debug/<sha1_short>.md`, writes only redacted values, and writes the regression test at a correct seam **before** the fix. The handoff prompt includes the artifact path. Hand off:
    - Single-scope fix → `task-yugong`
    - Multi-module fix → `task-multi-build`
 6. Invoke **`task-debug`** for Phase 6, cleanup + post-mortem. Verify all of:
@@ -49,7 +49,7 @@ Optional argument: `<bug-description>`: short description of the symptom (e.g., 
    - Regression test passes
    - All `[DEBUG-<sha1_short>]` instrumentation removed via grep
    - `spec/debug/<sha1_short>.md` updated or deleted
-   - Correct hypothesis stated in the commit/PR message
+   - Correct hypothesis supplied for a future commit/PR message
    - Optional final `task-judge` audit on the fix diff if the change is significant.
 
 ## Dispatch rules
@@ -87,7 +87,7 @@ Optional argument: `<bug-description>`: short description of the symptom (e.g., 
 [ok] Regression test passes
 [ok] All [DEBUG-<sha1_short>] removed
 [ok] spec/debug/<sha1_short>.md updated or deleted
-[ok] Correct hypothesis in commit message: <one line>
+[ok] Correct hypothesis for commit/PR message: <one line>
 ```
 
 ## Handoff

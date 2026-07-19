@@ -1,20 +1,20 @@
 ---
 name: job-plan
-description: Workflow for turning an ambiguous or multi-step request into an approved, persisted plan artifacts. Chains clarify → single-plan → challenge → user approval → persist plan (and optionally design / guide / README) to spec/<slug>/.
+description: Workflow for turning an ambiguous or multi-step request into approved, persisted plan artifacts. Chains clarify → single-plan → challenge → user approval → persist plan (and optionally design / guide / README) to spec/<slug>/.
 readonly: false
 is_background: false
-agents: [task-clarify, task-single-plan, task-challenge, task-yugong]
+agents: [task-clarify, task-single-plan, task-challenge]
 handoffs:
   - agent: job-build
     label: "Execute the persisted plan (job-build)"
-    prompt: "The plan artifacts above was approved by the user and persisted to `spec/<slug>/`. Execute per `spec/<slug>/plan.md` under job-build (TDD, checkpoint every ~3 steps, stop and report if scope grows)."
+    prompt: "The plan artifacts above were approved by the user and persisted to `spec/<slug>/`. Execute per `spec/<slug>/plan.md` under job-build (TDD, checkpoint every ~3 steps, stop and report if scope grows)."
 ---
 
 # job-plan
 
 ## Purpose
 
-Route a user request from ambiguity to an approved plan artifacts persisted under `spec/<slug>/` (plan.md always; design.md / guide.md / README.md when warranted).
+Route a user request from ambiguity to approved plan artifacts persisted under `spec/<slug>/` (plan.md always; design.md / guide.md / README.md when warranted).
 
 ## When to enter
 
@@ -37,8 +37,8 @@ Route a user request from ambiguity to an approved plan artifacts persisted unde
 4. **`task-challenge`**: Adversarial review of the plan and any emitted artifact sections. Flag drifted, merged, missing steps.
 5. Read `task-challenge`'s **verdict** field (values: `approve` / `needs-revision` / `reject`). If `needs-revision` or `reject` → revise (return to step 3). If `approve` → proceed. (The per-step `[blocker]` / `[should-fix]` / `[nit]` labels are severity annotations; the verdict is the gate.)
 6. **gate: user approves the plan artifacts.** Show the user the `Artifacts to persist` list; user can add or remove any of design.md / guide.md / README.md from the write set. Do not proceed to persistence without explicit user OK.
-7. Invoke **`task-yugong`** to persist the approved artifacts:
-   - Derive `<slug>` from the plan title (kebab-case, ≤ 40 chars; append `-N` on collision)
+7. Persist the approved artifacts directly (job-plan writes these files itself; no executor dispatch):
+   - Derive `<slug>` from the plan title (kebab-case, ≤ 40 chars; append `-N` on collision with existing `spec/<slug>/` directories)
    - Create `spec/<slug>/` if missing
    - Write `spec/<slug>/plan.md` (always; the numbered plan)
    - For each artifact marked `yes` in the approved list, write the corresponding section to `spec/<slug>/<artifact>.md`
@@ -50,7 +50,7 @@ Route a user request from ambiguity to an approved plan artifacts persisted unde
 - Never skip `task-clarify` when the request is ambiguous.
 - Never proceed past step 6 (user approval) without explicit OK from the user.
 - Never write anything to `spec/<slug>/` before step 6 approval (steps 1-6 are strictly chat-only).
-- Never write implementation code inside this workflow. Step 7 writes only the plan artifacts files under `spec/<slug>/`.
+- Never write implementation code inside this workflow. Step 7 writes only plan artifact files under `spec/<slug>/`.
 - Never write `design.md` / `guide.md` / `README.md` if the corresponding section was not produced in step 3 (no fabrication at write time).
 - Output MUST end with the line `[persisted: <comma-separated file paths>]` on success, or `[not persisted: <reason>]` if the workflow terminated before step 7.
 

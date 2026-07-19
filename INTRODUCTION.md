@@ -17,7 +17,7 @@ Unlike a flat multi-agent config where every capability sits at the same level, 
 | Layer | File pattern | Role | Count |
 |---|---|---|---|
 | 1. Router | `AGENTS.md` | Reads every user message; classifies intent semantically per section 3.0's routing table and dispatches to the right workflow or skill. No keyword table, no ask-before-dispatch; ambiguous intent routes to `@task-clarify`. | 1 |
-| 2. Workflow | `skills/job-*.md` | Multi-step chains that compose task skills into an end-to-end business flow. A workflow file is a routing / composition spec; hard rules live in the invoked skills. | 8 |
+| 2. Workflow | `skills/job-*.md` | Multi-step chains that compose task skills, own approval gates and state handoffs, and may persist approved orchestration artifacts. Production-code behavior stays in invoked tasks. | 8 |
 | 3. Task | `skills/task-*.md` | Atomic operations with concrete behavior contracts (Purpose / Hard constraints / Output shape / Handoff). Each task does one thing well. | 14 |
 
 Composition:
@@ -31,7 +31,7 @@ Composition:
 
 - A flat 22-agent list forces users (and the AI) to memorize when each of ~20 capabilities applies. Layering separates *what workflow* (job) from *what action* (task) from *how to decide* (router).
 - Workflows are reusable business flows (plan-approve-build-review, security audit, hard-bug diagnosis, doc-code alignment). Tasks stay focused on one discipline. The router adapts routing to the tool.
-- Hard rules live once, inside tasks. Workflows never redefine or loosen them; the router never contains behavior logic. Drift is bounded.
+- Production-code rules live in tasks. Workflows add only orchestration rules such as approval gates, sequencing, state handoff, and persistence of approved plan artifacts; they never loosen task rules. The router contains only dispatch logic.
 
 ### Why this design fits cheap models well
 
@@ -39,7 +39,7 @@ Frontier models are not required for most operations here. The three-layer desig
 
 - **Router (Layer 1)** is a semantic classification table (section 3.0). The AI matches the user's intent to a table row, a task any capable LLM handles reliably.
 - **Workflows (Layer 2)** are numbered dispatch chains (`call task-A → task-B → gate → task-C`). No open-ended reasoning; just follow the numbered steps.
-- **Tasks (Layer 3)** each carry an explicit *machine-verifiable predicate* (test passing, exit code 0, expected output present, HTTP status match, etc.) for the done gate. No fuzzy "does this look right" reasoning is needed.
+- **Execution tasks (Layer 3)** use explicit machine-verifiable predicates (test passing, exit code 0, expected output present, HTTP status match, etc.) for done gates. Read-only tasks use structured verdicts and cited evidence.
 - **Bounded budgets** (`task-yugong` caps a session at 13 baskets; no-progress detection halts thrashing) prevent runaway loops that rack up cost.
 - **Ambiguity handled by `@task-clarify`**: one focused clarifying question via skill invocation is cheaper than five rounds of ambiguity chasing and does not require the router to ask.
 
@@ -57,7 +57,7 @@ Modern coding assistants ship real agent orchestration. Current per-surface stat
 
 | Capability                                                | opencode           | Cursor             | Claude Code                                                                    | VS Code + Copilot                            |
 | --------------------------------------------------------- | ------------------ | ------------------ | ------------------------------------------------------------------------------ | -------------------------------------------- |
-| Parallel subagents from one chat turn                     | Yes (platform built-in `plan`/`build`/`general`/`explore`/`librarian`/`multimodal-looker` via `task` tool; `task-*` / `job-*` roles reached via `skill(name=...)` on demand) | Yes (built-in `explore`/`bash`/`browser`; custom `.cursor/agents/*.md`; nested up to 2 levels) | Yes (`.claude/agents/*.md`; Task tool parallel invocation) | Yes (auto-loads `.claude/agents/*.md`; `agent/runSubagent` + `.agent.md` wrappers; nested to 5 with setting) |
+| Parallel subagents from one chat turn                     | Partial (platform built-in `plan`/`build`/`general`/`explore`/`librarian`/`multimodal-looker` via `task` tool may run in parallel; `task-*` / `job-*` project roles load via `skill(name=...)` and run **sequentially** in shared context) | Yes (built-in `explore`/`bash`/`browser`; custom `.cursor/agents/*.md`; nested up to 2 levels) | Yes (`.claude/agents/*.md`; Task tool parallel invocation) | Yes (auto-loads `.claude/agents/*.md`; `agent/runSubagent` + `.agent.md` wrappers; nested to 5 with setting) |
 | Background tasks with completion callback / notification  | Yes (`run_in_background=true` on subagent dispatch; `<system-reminder>` completion notifications) | Yes (background subagents + `stop`/`subagentStop` hooks; Cloud Agents + iOS push / Slack / Live Activities) | Partial (Bash `run_in_background=true` for shell tasks; no separate background subagent callback) | Yes (`chat.notifyWindowOnResponseReceived`; Copilot CLI background sessions; Hooks Preview) |
 | Automatic state handoff between agent modes / personas    | Yes (parent → subagent with continuation session ids; `task(task_id=…)` resumes with full context) | Yes (parent → subagent; local ↔ cloud move; main ↔ side chat with context; resumable subagents by ID) | Partial (subagent returns final result to parent; parent orchestrates next dispatch) | Yes (`handoffs:` frontmatter with optional `send: true` auto-submit; Session Target dropdown; Continue in Cloud; Plan → Agent) |
 
@@ -225,14 +225,14 @@ Applies to new features, bug fixes (write a regression test that reproduces the 
 
 ### Six-Phase Evidence-First Loop
 
-**What it is.** `task-debug` diagnoses hard bugs in six ordered phases. Skipping phases is only allowed when explicitly justified.
+**What it is.** `task-debug` diagnoses hard bugs in six ordered phases. It stays read-only, builds the evidence, and specifies instrumentation, tests, and fixes for a writable executor. Skipping phases is only allowed when explicitly justified.
 
 - **Phase 1: Build a feedback loop.** Construct one command that goes red on this bug and green when fixed. The loop must be red-capable (drives the actual bug code path), deterministic (same verdict every run), fast (seconds), agent-runnable (unattended). **Do not proceed to hypotheses without a loop.**
 - **Phase 2: Reproduce + minimise.** Run the loop, watch it go red. Shrink the repro one element at a time; every remaining element must be load-bearing.
 - **Phase 3: Hypothesise.** Generate 3-5 ranked, *falsifiable* hypotheses before testing any. Show the ranked list to the user; domain knowledge often re-ranks instantly.
-- **Phase 4: Instrument.** Debugger/REPL first, targeted logs second, never "log everything and grep". Change one variable at a time.
-- **Phase 5: Fix + regression test.** Write the regression test **before the fix** at a correct seam.
-- **Phase 6: Cleanup + post-mortem.** Original repro no longer reproduces; regression test passes; all debug instrumentation removed; correct hypothesis stated in the commit message.
+- **Phase 4: Instrument.** Debugger/REPL first. If writes are needed, specify targeted instrumentation for the executor. Change one variable at a time.
+- **Phase 5: Fix + regression test.** Specify a regression test and minimal fix at a correct seam. The executor writes the test **before the fix**.
+- **Phase 6: Cleanup + post-mortem.** Re-read executor evidence. Confirm the original repro no longer reproduces, the regression test passes, and all debug instrumentation is removed.
 
 **Why it works.** Phase 1 (the feedback loop) is the entire skill; every subsequent phase is mechanical once the loop exists. Debugging without a loop is guessing.
 
@@ -255,11 +255,11 @@ Applies to new features, bug fixes (write a regression test that reproduces the 
 
 ### SHA1 Debug Session Prefix and Record File
 
-**What it is.** Every `task-debug` debug session generates a SHA1. Every debug log line added during the session carries a prefix built from the first 8 characters of the SHA1: `[DEBUG-a3f9c2e1]`. The full SHA1, timestamp, bug summary, and hypothesis under test are recorded in `spec/debug/<sha1_short>.md`.
+**What it is.** Every `task-debug` session that needs file-based instrumentation specifies a SHA1. The writable executor uses its first 8 characters as `[DEBUG-a3f9c2e1]` and records redacted session data in `spec/debug/<sha1_short>.md`.
 
 **Why it works.** Debug logs are supposed to be temporary. Without a session prefix, cleaning them up requires visual inspection. With a per-session prefix, cleanup is one grep: `grep -rn "[DEBUG-a3f9c2e1]" | xargs sed -i '/DEBUG-a3f9c2e1/d'`. No debug log survives past its session by accident.
 
-**When to invoke.** Any `task-debug` session that adds debug logging. Every added line must carry the tag.
+**When to invoke.** Any `task-debug` session that needs debug logging. Every proposed line must carry the tag.
 
 **Anti-pattern.**
 
@@ -270,7 +270,7 @@ Applies to new features, bug fixes (write a regression test that reproduces the 
 
 ### Fog-of-War Mapping
 
-**What it is.** `task-strategy` charts a large multi-session effort as an issue-tracker map. The rule: **do not chart what you cannot state precisely**. Beyond the sharp tickets lies fog; write it loosely under `Not yet specified` and let it graduate to tickets as the frontier advances. Each ticket has a type: `research` (resolved by `task-librarian`), `prototype` (resolved by `task-quick-verify`), `grilling` (resolved by `task-clarify`), or `task` (manual work that unblocks a decision).
+**What it is.** `task-strategy` charts a large multi-session effort as an issue-tracker map. The rule is **do not chart what you cannot state precisely**. Beyond the sharp tickets lies fog; write it loosely under `Not yet specified` and let it graduate to tickets as the frontier advances. Ticket types are `research` (resolved by `task-librarian`), `prototype` (resolved by `task-quick-verify`), `grilling` (resolved by `task-clarify`), and `task` (manual work that unblocks a decision).
 
 **Why it works.** Premature specification of vague areas invents scope. Explicit fog is honest; it prevents the team from acting on assumptions that will change. As research or prototypes resolve, fog turns into precise tickets.
 
@@ -282,7 +282,7 @@ Applies to new features, bug fixes (write a regression test that reproduces the 
 - **Charging at the destination**: ignoring fog, starting to build the guessed solution.
 - **Resolving more than one non-research ticket per session**: rushes the map's evolution and defeats the point.
 
-**Micro-example.** Task: "Migrate the app from Framework A to Framework B." `task-strategy` names the destination ("the app runs on B with feature parity"), then charts what is precise: `[task] set up B alongside A`, `[research] does B support our SSO adapter?`, `[prototype] port one screen and measure`, `[grilling] do we deprecate A features that B has no equivalent for?`. Everything else stays as fog. Each session picks one ticket.
+**Micro-example.** The task is "Migrate the app from Framework A to Framework B." `task-strategy` names the destination ("the app runs on B with feature parity"), then charts precise tickets such as `[task] set up B alongside A`, `[research] does B support our SSO adapter?`, `[prototype] port one screen and measure`, and `[grilling] do we deprecate A features that B has no equivalent for?`. Everything else stays as fog. Each session picks one ticket.
 
 ### Dual-Branch Prototyping
 
@@ -291,7 +291,7 @@ Applies to new features, bug fixes (write a regression test that reproduces the 
 - **logic branch**: an interactive terminal app that pushes a state machine through hard-to-reason cases.
 - **UI branch**: multiple radically different variants on a single route, URL-parameter switched with a floating toggle bar.
 
-Throwaway from day one. One command to run. No persistence. No tests. No polish. Once the decision is validated, fold it into real code; commit the prototype to a throwaway branch, never main.
+Throwaway from day one. One command to run. No persistence. No tests. No polish. Once the decision is validated, fold it into real code. Keep the prototype off main; create a throwaway branch or commit only when the current user message asks.
 
 **Why it works.** A cheap concrete artifact answers many design questions faster than any amount of discussion. Two branches cover the two dominant shapes of design uncertainty (behavioral vs. visual).
 
@@ -410,7 +410,7 @@ Roles that write code and produce artifacts.
 
 #### `task-multi-build`
 
-- **Purpose**: Multi-domain implementer with active delegation to specialists. Executes changes across multiple modules and dispatches subagents in parallel where helpful.
+- **Purpose**: Multi-domain implementer with active delegation to specialists. Executes changes across multiple modules and runs independent specialists in parallel where the host supports native subagents.
 - **When to enter**: Task spans multiple modules or systems, benefits from delegating sub-tasks to `task-explore` / `task-librarian` / `task-judge` / `task-multimodal-looker`.
 - **Methodologies**: TDD Discipline, Mid-Execution Checkpoint (dispatched every ~3 steps)
 - **Hard rule**: No type suppression, no empty catch blocks, no destructive git actions without user confirmation, no unsolicited refactors while doing a bug fix.
@@ -429,7 +429,7 @@ Roles that write code and produce artifacts.
 
 #### `task-general`
 
-- **Purpose**: Multi-step research plus execution across unrelated systems when no specialist role fits. Decompose and dispatch specialists in parallel.
+- **Purpose**: Read-only coordination of mixed research and execution across unrelated systems when no specialist role fits. Decompose and dispatch specialists; parallelize only where the host supports native subagents.
 - **When to enter**: Task mixes research and execution across several unrelated systems and no single specialized role covers it.
 - **Hard rule**: Never swallow specialist work that belongs to `task-explore`, `task-librarian`, `task-judge`, `task-multimodal-looker`, or `task-debug`; hand off.
 - **Handoff**: Specialist roles per sub-task; return control to user with aggregated conclusion.
@@ -482,7 +482,7 @@ Roles that inspect work for defects, at three different points in time.
 - **Purpose**: Read-only high-authority audit on two independent axes.
 - **When to enter**: Architectural choice with multi-system trade-offs, after ≥2 failed fix attempts on the same bug, after completing a significant change before claiming done, security/performance judgment call.
 - **Methodologies**: Adversarial Review, Fowler Smell Baseline
-- **Two axes run in parallel** (never merged or re-ranked):
+- **Two axes stay independent** (never merged or re-ranked; native subagent tools may run them in parallel):
   - **Standards**: does the code follow this repo's coding standards + the Fowler smell baseline?
   - **Spec**: does the code match what the originating issue / PRD asked for?
 - **Hard rule**: No file edits. No vague "you could consider…" without a concrete recommendation. Never merge findings across axes; one axis can pass while the other fails.
@@ -502,7 +502,7 @@ Roles that inspect work for defects, at three different points in time.
 
 ### 2.5 Workflows
 
-Multi-step chains that compose `task-*` skills into end-to-end business workflows. Each workflow file is a routing/composition spec; hard rules live in the invoked skills.
+Multi-step chains that compose `task-*` skills into end-to-end business workflows. Workflows own sequencing, approval gates, and state handoff; invoked tasks own production-code behavior.
 
 #### `job-plan`
 
@@ -524,12 +524,12 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 
 #### `job-verify`
 
-- **Purpose**: Verify work matches the plan and spec. Mid-execution uses `task-checkpoint` (continue / adjust plan / halt); post-execution uses `task-judge` on Standards + Spec axes. Narrower than `job-review` (no leftover sweep, no plan-vs-diff walkthrough).
-- **When to enter**: Mid-execution "check progress"; post-execution "verify" or "audit"; or dispatched by `job-build` every ~3 steps.
+- **Purpose**: Verify in-progress work against the approved plan through `task-checkpoint` (continue / adjust plan / halt).
+- **When to enter**: Mid-execution "check progress", executor drift, or automatic dispatch by `job-build` every ~3 steps.
 - **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.2
-- **Dispatch rule**: Never confuse mid-execution and post-execution modes; they call different skills. Never merge the two `task-judge` axes. Never issue `SHIP` if any `[blocker]` remains. Never edit files inside this workflow.
-- **Handoff**: Executor (`task-yugong` / `task-multi-build`) for fixes; `job-plan` if `adjust plan`; user if `halt`.
-- **Not for**: Comprehensive pre-ship review (use `job-review`).
+- **Dispatch rule**: Never run post-completion review here. Never edit files inside this workflow.
+- **Handoff**: Executor (`task-yugong` / `task-multi-build`) if `continue`; `job-plan` if `adjust plan`; user if `halt`.
+- **Not for**: Completed-work review (use `job-review`).
 
 #### `job-debug`
 
@@ -542,7 +542,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 
 #### `job-align`
 
-- **Purpose**: Bring documentation back into alignment with actual code after iterative changes. `task-explore` enumerates doc touch-points → classify stale/missing/drift → user approves direction → `task-yugong` / `task-multi-build` applies edits → `task-judge` re-scans.
+- **Purpose**: Read-only code-doc alignment. `task-explore` enumerates doc touch-points → classify stale/missing/drift → user approves direction → persist the approved report → `task-yugong` / `task-multi-build` applies edits → `task-judge` re-scans.
 - **When to enter**: "docs are out of date" / "align docs" / "文档和代码不一致" / large feature landed and doc drift accumulated.
 - **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.2
 - **Dispatch rule**: Never edit spec/PRD intent documents without explicit user OK. Never use bulk text diff to apply changes; item-by-item preserves semantics.
@@ -551,7 +551,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 
 #### `job-review`
 
-- **Purpose**: Pre-completion review. Chains `task-challenge` (plan-vs-diff walkthrough) → `task-judge` (Standards axis + Spec axis) → `task-debug` + `task-explore` in parallel (known-bug signature sweep; TODO/FIXME/debug-remnant sweep) → aggregate.
+- **Purpose**: Pre-completion review. Chains `task-challenge` (plan-vs-diff walkthrough) → `task-judge` (Standards axis + Spec axis) → `task-explore` (known-bug signatures and leftover sweep) → aggregate.
 - **When to enter**: Before declaring any significant task done; before opening or merging a PR; before releasing a feature branch; after an executor session reports completion.
 - **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.2
 - **Dispatch rule**: Read-only. Standards and Spec axes kept separately attributed and never merged. No `SHIP` verdict if any `[blocker]` remains. Do not "quickly fix" findings inside this role.
@@ -560,7 +560,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 
 #### `job-security-review`
 
-- **Purpose**: End-to-end security audit. Chains `task-explore` (locate security-sensitive surfaces) → `task-judge` + `task-librarian` in parallel (OWASP + Fowler-baseline audit; external best-practice verification) → optional `task-debug` escalation for unclear vulnerabilities → aggregate.
+- **Purpose**: End-to-end security audit. Chains `task-explore` (locate security-sensitive surfaces) → independent `task-judge` + `task-librarian` passes (parallel where supported) → optional `task-debug` escalation for unclear vulnerabilities → aggregate.
 - **When to enter**: Before shipping code with security surface (auth, session, crypto, secret/token handling, input validation, deserialization); before opening a PR that touches security-sensitive code; on a periodic per-release cadence; when a security-relevant bug's exploit surface needs charting before the fix.
 - **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.2
 - **Dispatch rule**: Read-only. Sub-agent findings preserved by source and never merged or re-ranked. `[blocker]` requires a concrete named failure mode. Verdict is one line, `SHIP` / `FIX-THEN-SHIP` / `DO-NOT-SHIP`.
@@ -652,9 +652,9 @@ Three realistic development situations, walked end-to-end. Each shows which role
    - (c) The checkout service caches something in a module-level variable. Falsifiable by clearing the module cache between test runs.
    - (d) A shared test fixture is mutated by an unrelated test. Falsifiable by running this test in isolation.
    Shows the ranked list to the user. User re-ranks based on domain knowledge: "we recently added a Redis cache to the checkout service" → (c) jumps to #1.
-6. **`task-debug` Phase 4** (instrument). Generates a SHA1 for this debug session (say `a3f9c2e1`). Records the session in `spec/debug/a3f9c2e1.md` with the ranked hypotheses. Adds one debug log line `console.log("[DEBUG-a3f9c2e1] checkout cache state:", cache)`. Runs the loop again. Cache dump confirms hypothesis (c), the module-level cache from a previous test survives into the next test in the same process.
-7. **`task-debug` Phase 5**: Fix + regression test. Writes a regression test at the correct seam (test-suite-level `afterEach` that asserts the cache is empty). Watches it fail for the right reason (cache is not empty after the test). Then fixes the checkout service to expose a `resetCache()` method (or, better, uses dependency injection so the cache is per-instance). Test suite goes green.
-8. **`task-debug` Phase 6** (cleanup + post-mortem). `grep -rn "[DEBUG-a3f9c2e1]"` returns one match; removes it. Deletes or curates `spec/debug/a3f9c2e1.md`. Re-runs the original `--repeat 500` loop, 0 failures. Writes the correct hypothesis into the commit message, "Fix flaky checkout test caused by module-level Redis cache surviving across test runs."
+6. **`task-debug` Phase 4** (instrument). Specifies SHA1 session `a3f9c2e1`, redacted `spec/debug/a3f9c2e1.md` content, and one targeted log line `console.log("[DEBUG-a3f9c2e1] checkout cache state:", cache)`. A writable executor applies the plan and returns the cache evidence. The evidence confirms hypothesis (c), the module-level cache from a previous test survives into the next test in the same process.
+7. **`task-multi-build` Phase 5** (fix + regression test). Writes a regression test at the correct seam (test-suite-level `afterEach` that asserts the cache is empty). Watches it fail for the right reason, then fixes the checkout service to expose a `resetCache()` method (or, better, uses dependency injection so the cache is per-instance). Test suite goes green.
+8. **`task-debug` Phase 6** (verify cleanup + post-mortem). Re-reads executor evidence. `grep -rn "[DEBUG-a3f9c2e1]"` returns no matches, the debug record is curated or deleted, and the original `--repeat 500` loop reports 0 failures. It supplies the correct hypothesis for a future commit or PR message, "Fix flaky checkout test caused by module-level Redis cache surviving across test runs."
 9. If in Phase 4 the root cause had turned out to be an architectural mistake (e.g. shared mutable state is used pervasively across the codebase), `task-debug` would have handed off to **`task-judge`** for an architectural verdict before the fix; the fix would then be scoped by the audit.
 
 **Methodologies exercised**: loop engineering (correctly stopping instead of piling `sleep`s), six-phase loop, SHA1 tag, TDD (applied to the regression test), adversarial audit (if escalated).
@@ -667,7 +667,7 @@ Three realistic development situations, walked end-to-end. Each shows which role
 
 **How to start using the roles:**
 
-- Read `AGENTS.md` section 2 for the invocation cheat sheet. When you have a task, type `@task-<role>` or `@job-<workflow>` to invoke a specific one, or just describe the task and let the default role (`task-yugong`) or the routing rule in `AGENTS.md` section 3.0 pick the right one.
+- Read `AGENTS.md` section 3.0 for semantic routing and section 4 for role cards. Type `@task-<role>` or `@job-<workflow>` when you want to name a role explicitly, or describe the task and let the router choose.
 - When in doubt about which role, look for the closest scenario in Part 3 and follow its chain.
 - When a methodology feels unfamiliar in practice, re-read its section in Part 1 and try it on a small real task.
 

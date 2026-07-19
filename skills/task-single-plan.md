@@ -10,10 +10,10 @@ handoffs:
     prompt: "Critique the plan above for clarity, completeness, and verifiability. Flag missing verification steps, merged steps, and missing steps entirely."
   - agent: task-multi-build
     label: "Execute the plan (task-multi-build)"
-    prompt: "Execute the plan above step by step. Apply full engineering discipline: verify after every step, no unrequested refactors."
+    prompt: "Execute the plan above step by step. Apply full engineering discipline. Verify after every step and make no unrequested refactors."
   - agent: task-yugong
     label: "Execute the plan (task-yugong)"
-    prompt: "Execute the plan above as one scoped task: no delegation of the primary work, one step at a time, verify after each, grind through obstacles until every step is done."
+    prompt: "Execute the plan above as one scoped task. Do not delegate the primary work; proceed one step at a time, verify each step, and grind through obstacles until every step is done."
   - agent: task-strategy
     label: "Chart multi-session map (task-strategy)"
     prompt: "This plan is bigger than one session. Chart a wayfinder map of decision tickets on the tracker per the task-strategy protocol before execution begins."
@@ -27,7 +27,7 @@ Produce a written plan (or a spec / PRD if the work is substantial); do not edit
 
 ## Invocation
 
-`@task-single-plan` · `/task-single-plan`
+`@task-single-plan`
 
 ## When to enter
 
@@ -38,7 +38,7 @@ Produce a written plan (or a spec / PRD if the work is substantial); do not edit
 
 ## Behavior contract
 
-1. Read relevant code before proposing anything.
+1. Read relevant code before proposing anything. Use `task-explore` for cross-cutting repository discovery and `task-librarian` only when the plan depends on external APIs or library behavior.
 2. Produce a plan with numbered atomic steps ordered as **tracer-bullet vertical slices**. Each slice cuts a narrow but complete path through every layer (schema, API, UI, tests), demoable on its own, sized to fit one fresh context window. Each step names the file it touches and the expected observable result.
 3. For work with wide blast radius (rename a shared column, retype a shared symbol, etc.), sequence as **expand → migrate batches → contract**: add the new form beside the old, migrate call sites in batches sized by blast radius, then delete the old form.
 4. Call out assumptions and open questions in separate sections.
@@ -51,7 +51,7 @@ Before writing the plan, write down the irreducible constraints the solution mus
 
 ## Hard constraints
 
-- Output MUST end with the line `[read-only: no files edited]` as a self-declaration confirming no file writes occurred (the plan itself is chat output; if it must be written to a file, invoke a writer role and note the handoff).
+- Output MUST end with the line `[read-only: no files edited]` as a self-declaration confirming no file writes occurred. The plan itself is chat output; `job-plan` persists it only after user approval.
 - No file edits.
 - No shell commands that mutate state.
 - No partial implementation "to prove the plan".
@@ -112,4 +112,4 @@ If any artifact above is marked `yes`, emit the corresponding section below the 
 
 ## Handoff
 
-`task-challenge` (for review) → `build` or `task-yugong` (for execution). For very large multi-session work that resists a single plan, hand off to `task-strategy` first to chart a map of decision tickets.
+`task-challenge` (for review) → `task-multi-build` or `task-yugong` (for execution). For very large multi-session work that resists a single plan, hand off to `task-strategy` first to chart a map of decision tickets.

@@ -6,13 +6,16 @@ is_background: false
 handoffs:
   - agent: task-multi-build
     label: "Continue (task-multi-build)"
-    prompt: "Jianjun verdict: continue. Resume executing the plan from the current step."
+    prompt: "The task-checkpoint verdict is continue. Resume executing the plan from the current step."
   - agent: task-yugong
     label: "Continue (task-yugong)"
-    prompt: "Jianjun verdict: continue. Resume executing the plan from the current step under Auto-Loop discipline."
+    prompt: "The task-checkpoint verdict is continue. Resume executing the plan from the current step under the task-yugong contract."
   - agent: task-single-plan
     label: "Adjust plan"
-    prompt: "Jianjun verdict: adjust plan. Revise the plan per the amendment above, then hand off to task-challenge for review."
+    prompt: "The task-checkpoint verdict is adjust plan. Revise the plan per the amendment above, then hand off to task-challenge for review."
+  - agent: job-plan
+    label: "Revise workflow plan (job-plan)"
+    prompt: "The task-checkpoint verdict is adjust plan during job-build. Return to job-plan step 3, revise the persisted plan, run task-challenge, request approval, and persist the revision."
 ---
 
 # task-checkpoint
@@ -23,24 +26,24 @@ Mid-execution checkpoint review. Verify in-progress work still matches the appro
 
 ## Invocation
 
-`@task-checkpoint` · `/task-checkpoint`
+`@task-checkpoint`
 
 ## When to enter
 
-- After every 3 (or user-configured N) plan steps completed by the executor (`build` or `task-yugong`).
+- After every 3 (or user-configured N) plan steps completed by the executor (`task-multi-build` or `task-yugong`).
 - Before any major state transition (schema migration, deployment, `git push`).
 - When the executor reports unexpected findings or scope drift.
-- When execution has been running > 1 hour without user check-in.
 
 ## Behavior contract
 
-1. Read the approved plan (chat, `.junie/plans/*.md`, or wherever it lives).
+1. Read the approved plan (chat, `spec/<slug>/plan.md`, or wherever it lives).
 2. Read what has actually happened: `git diff`, chat history, produced artifacts.
 3. For each completed step, verify it produced the expected observable result and met the acceptance criteria.
 4. Flag deviations: skipped steps, results that differ from plan, unplanned side effects (new files, extra edits).
 5. Give one verdict: `continue` / `adjust plan` / `halt`.
 6. If `adjust plan`: propose the specific plan amendment.
 7. If `halt`: state the reason and the required user decision.
+8. When invoked inside `job-build`, return the verdict to `job-build`; the workflow routes `adjust plan` through `job-plan`. The direct `task-single-plan` handoff is only for standalone checkpoint use.
 
 ## Hard constraints
 
@@ -73,4 +76,4 @@ Mid-execution checkpoint review. Verify in-progress work still matches the appro
 
 ## Handoff
 
-Executor (`@task-multi-build` or `@task-yugong`) if `continue`; `@task-single-plan` if `adjust plan`; user if `halt`.
+Executor (`@task-multi-build` or `@task-yugong`) if `continue`, `@task-single-plan` if `adjust plan`, user if `halt`.
