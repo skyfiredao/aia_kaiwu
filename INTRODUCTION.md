@@ -1,12 +1,12 @@
 # INTRODUCTION: How to Use the Kaiwu Agent Workflow System in Software Engineering
 
-This document introduces the design philosophy, roles, methodologies, and typical usage of the *aia_kaiwu* agent workflow system. It is aimed at software engineers who want to understand **what the system does, why it is designed this way, and how to use it in real development work**. For installation instructions see `README.md`.
+This document introduces the design philosophy, capabilities, methodologies, and typical usage of the *aia_kaiwu* agent workflow system. It is aimed at software engineers who want to understand **what the system does, why it is designed this way, and how to use it in real development work**. For installation instructions see `README.md`.
 
 ## Preface
 
-*aia_kaiwu* borrows its name from [*Tiangong Kaiwu*](https://en.wikipedia.org/wiki/Tiangong_Kaiwu), the 1637 encyclopedia by Song Yingxing that catalogued every craft and production technique of the era. Each craft in that book was a discipline with its own masters, tools, and protocol. One role per craft, each with an explicit behavior contract embedded in `skills/<role>.md`. Role slugs use two prefixes. `task-*` denotes single-step skills, `job-*` denotes multi-step workflows.
+*aia_kaiwu* borrows its name from [*Tiangong Kaiwu*](https://en.wikipedia.org/wiki/Tiangong_Kaiwu), the 1637 encyclopedia by Song Yingxing that catalogued every craft and production technique of the era. Each craft in that book was a discipline with its own masters, tools, and protocol. One capability per craft, each with an explicit behavior contract embedded in `skills/<slug>.md`. Capability slugs use two prefixes. `task-*` denotes atomic skills, `job-*` denotes multi-step workflows.
 
-The document has three parts. Part 1 defines the named methodologies that shape role behavior. Part 2 lists atomic skills and multi-step workflows with their entry conditions and handoffs. Part 3 walks three realistic development situations end-to-end. Read Part 1 in order; Part 2 and Part 3 can be scanned in any order once Part 1 is understood.
+The document has three parts. Part 1 defines the named methodologies that shape skill behavior. Part 2 lists atomic skills and multi-step workflows with their entry conditions and handoffs. Part 3 walks three realistic development situations end-to-end. Read Part 1 in order; Part 2 and Part 3 can be scanned in any order once Part 1 is understood.
 
 ---
 
@@ -14,11 +14,11 @@ The document has three parts. Part 1 defines the named methodologies that shape 
 
 Unlike a flat multi-agent config where every capability sits at the same level, this project layers three distinct concerns:
 
-| Layer | File pattern | Role | Count |
-|---|---|---|---|
-| 1. Router | `AGENTS.md` | Reads every user message; classifies intent semantically per section 3.0's routing table and dispatches to the right workflow or skill. No keyword table, no ask-before-dispatch; ambiguous intent routes to `@task-clarify`. | 1 |
-| 2. Workflow | `skills/job-*.md` | Multi-step chains that compose task skills, own approval gates and state handoffs, and may persist approved orchestration artifacts. Production-code behavior stays in invoked tasks. | 8 |
-| 3. Task | `skills/task-*.md` | Atomic operations with concrete behavior contracts (Purpose / Hard constraints / Output shape / Handoff). Each task does one thing well. | 14 |
+| Layer | File pattern | Capability |
+|---|---|---|
+| Router | `AGENTS.md` | Reads every user message; classifies intent semantically per section 3.0's routing table and dispatches to the right workflow or skill. No keyword table, no ask-before-dispatch; ambiguous intent routes to `@task-clarify`. |
+| Workflow | `skills/job-*.md` | Multi-step chains that compose task skills, own interaction policy (approval gates or autonomous preauthorization) and state handoffs, and may persist approved orchestration artifacts. Production-code behavior stays in invoked tasks. |
+| Task | `skills/task-*.md` | Atomic operations with concrete behavior contracts (Purpose / Hard constraints / Output shape / Handoff). Each task does one thing well. |
 
 Composition:
 
@@ -29,7 +29,7 @@ Composition:
 
 ### Why three layers, not one flat list
 
-- A flat 22-agent list forces users (and the AI) to memorize when each of ~20 capabilities applies. Layering separates *what workflow* (job) from *what action* (task) from *how to decide* (router).
+- A flat agent list forces users (and the AI) to memorize every capability. Layering separates *what workflow* (job) from *what action* (task) from *how to decide* (router).
 - Workflows are reusable business flows (plan-approve-build-review, security audit, hard-bug diagnosis, doc-code alignment). Tasks stay focused on one discipline. The router adapts routing to the tool.
 - Production-code rules live in tasks. Workflows add only orchestration rules such as approval gates, sequencing, state handoff, and persistence of approved plan artifacts; they never loosen task rules. The router contains only dispatch logic.
 
@@ -47,9 +47,9 @@ Net effect. A cheap model reading this config can execute complete workflows (pl
 
 ### File layout
 
-- `skills/task-*.md` (14): atomic skills
-- `skills/job-*.md` (8): multi-step workflows
-- Tool registration (`.claude/agents/*.md`, `.cursor/agents/*.md`, `.opencode/skills/*/SKILL.md`) uniformly symlinks the same 22 canonical files, so every supported tool sees the same behavior contracts.
+- `skills/task-*.md`: atomic skills
+- `skills/job-*.md`: multi-step workflows
+- Tool registration (`.claude/agents/*.md`, `.cursor/agents/*.md`, `.opencode/skills/*/SKILL.md`) uniformly symlinks the canonical files, so every supported tool sees the same behavior contracts.
 
 ### Capability matrix per host tool
 
@@ -57,7 +57,7 @@ Modern coding assistants ship real agent orchestration. Current per-surface stat
 
 | Capability                                                | opencode           | Cursor             | Claude Code                                                                    | VS Code + Copilot                            |
 | --------------------------------------------------------- | ------------------ | ------------------ | ------------------------------------------------------------------------------ | -------------------------------------------- |
-| Parallel subagents from one chat turn                     | Partial (platform built-in `plan`/`build`/`general`/`explore`/`librarian`/`multimodal-looker` via `task` tool may run in parallel; `task-*` / `job-*` project roles load via `skill(name=...)` and run **sequentially** in shared context) | Yes (built-in `explore`/`bash`/`browser`; custom `.cursor/agents/*.md`; nested up to 2 levels) | Yes (`.claude/agents/*.md`; Task tool parallel invocation) | Yes (auto-loads `.claude/agents/*.md`; `agent/runSubagent` + `.agent.md` wrappers; nested to 5 with setting) |
+| Parallel subagents from one chat turn                     | Partial (platform built-in `plan`/`build`/`general`/`explore`/`librarian`/`multimodal-looker` via `task` tool may run in parallel; `task-*` / `job-*` project capabilities load via `skill(name=...)` and run **sequentially** in shared context) | Yes (built-in `explore`/`bash`/`browser`; custom `.cursor/agents/*.md`; nested up to 2 levels) | Yes (`.claude/agents/*.md`; Task tool parallel invocation) | Yes (auto-loads `.claude/agents/*.md`; `agent/runSubagent` + `.agent.md` wrappers; nested to 5 with setting) |
 | Background tasks with completion callback / notification  | Yes (`run_in_background=true` on subagent dispatch; `<system-reminder>` completion notifications) | Yes (background subagents + `stop`/`subagentStop` hooks; Cloud Agents + iOS push / Slack / Live Activities) | Partial (Bash `run_in_background=true` for shell tasks; no separate background subagent callback) | Yes (`chat.notifyWindowOnResponseReceived`; Copilot CLI background sessions; Hooks Preview) |
 | Automatic state handoff between agent modes / personas    | Yes (parent → subagent with continuation session ids; `task(task_id=…)` resumes with full context) | Yes (parent → subagent; local ↔ cloud move; main ↔ side chat with context; resumable subagents by ID) | Partial (subagent returns final result to parent; parent orchestrates next dispatch) | Yes (`handoffs:` frontmatter with optional `send: true` auto-submit; Session Target dropdown; Continue in Cloud; Plan → Agent) |
 
@@ -69,7 +69,7 @@ The runtime behavioral difference the AI must observe (per-tool dispatch, workfl
 
 Named methodologies are the atomic units of behavior. Each has a precise trigger, a hard rule, an anti-pattern, and a concrete micro-example. Skim the table below, then read each section.
 
-| Methodology | Owner role(s) | One-line summary |
+| Methodology | Owner capability | One-line summary |
 |---|---|---|
 | First-Principles Derivation | `task-single-plan` | Derive the plan from irreducible constraints, not from convention. |
 | First-Principles Decomposition | `task-clarify` | Decompose the request to the root problem before answering. |
@@ -204,7 +204,7 @@ Applies to new features, bug fixes (write a regression test that reproduces the 
 - **Tautological test**: `expect(add(a, b)).toBe(a + b)`. Passes by construction; can never disagree with the code. Expected values must come from an independent source of truth.
 - **Horizontal slicing**: as above.
 
-**When to invoke.** Cross-cutting across all execution roles (`task-multi-build`, `task-yugong`). Explicit exceptions include throwaway spike/experiment scripts, config-only edits, docs, dependency version bumps.
+**When to invoke.** Cross-cutting across all execution skills (`task-multi-build`, `task-yugong`). Explicit exceptions include throwaway spike/experiment scripts, config-only edits, docs, dependency version bumps.
 
 **Micro-example.** Adding a `discount()` function. The wrong approach writes ten tests covering every discount tier, then implements. The right approach writes one test for a 10% off case, watches it fail, implements, refactors; next cycle adds the 20% tier; next adds the stackable case; each cycle produces working code.
 
@@ -214,7 +214,7 @@ Applies to new features, bug fixes (write a regression test that reproduces the 
 
 **Why it works.** Most real work is not multi-domain and does not benefit from delegation. Delegation adds coordination overhead, ambiguity in ownership, and risk of specialist output disagreement. A single grinder finishes what a coordinated team would spend the same time debating.
 
-**When to invoke.** Any concrete task with a clear single scope. `task-yugong` is the **default role** when the user gives an implementation task without naming a role.
+**When to invoke.** Any concrete task with a clear single scope. `task-yugong` is the **default skill** when the user gives an implementation task without naming a skill.
 
 **Anti-pattern.**
 
@@ -335,7 +335,7 @@ Throwaway from day one. One command to run. No persistence. No tests. No polish.
 - Before any major state transition (schema migration, deployment, `git push`).
 - When the executor reports drift or unexpected friction.
 
-**Why it works.** Execution drift is invisible from inside execution. A checkpoint role external to the execution loop notices "we're on step 4 but the plan assumed we'd have finished step 3's tests" before the drift compounds. Cheap intervention beats expensive rework.
+**Why it works.** Execution drift is invisible from inside execution. A checkpoint skill external to the execution loop notices "we're on step 4 but the plan assumed we'd have finished step 3's tests" before the drift compounds. Cheap intervention beats expensive rework.
 
 **When NOT to invoke.** Before a plan exists (that's `task-clarify`'s job). After all work is done (that's `task-judge`'s job). At every single step (that's over-checkpointing, coordination cost > benefit).
 
@@ -348,13 +348,13 @@ Throwaway from day one. One command to run. No persistence. No tests. No polish.
 
 ---
 
-## Part 2: Roles
+## Part 2: Skills and Workflows
 
-Roles are grouped by phase of work. Each role card lists purpose, when to enter, methodologies inherited, handoff destinations, and when *not* to use it.
+Capabilities are grouped by phase of work. Each entry lists purpose, when to enter, methodologies inherited, handoff destinations, and when *not* to use it.
 
 ### 2.1 Decision and Planning
 
-Roles that decide *what to build* and *how to sequence it*, before code is written.
+Skills that decide *what to build* and *how to sequence it*, before code is written.
 
 #### `task-clarify`
 
@@ -406,7 +406,7 @@ Roles that decide *what to build* and *how to sequence it*, before code is writt
 
 ### 2.2 Execution
 
-Roles that write code and produce artifacts.
+Skills that write code and produce artifacts.
 
 #### `task-multi-build`
 
@@ -417,10 +417,10 @@ Roles that write code and produce artifacts.
 - **Handoff**: `task-judge` (post-implementation audit).
 - **Not for**: Single-scope tasks. Prefer `task-yugong`. Multi-domain coordination cost is only worth it when the work genuinely spans domains.
 
-#### `task-yugong` (default role)
+#### `task-yugong` (default skill)
 
-- **Namesake**: The Yugong fable tells of Old Man Yugong who moved a mountain little by little; the paradigm of scoped, patient, un-delegated labor. This role is the default executor. Take one clearly-scoped task, grind, verify, stop if scope grows.
-- **Purpose**: Take one clearly-scoped task and grind through it under full engineering discipline until done and verified. This is the default role when the user names none.
+- **Namesake**: The Yugong fable tells of Old Man Yugong who moved a mountain little by little; the paradigm of scoped, patient, un-delegated labor. This skill is the default executor. Take one clearly-scoped task, grind, verify, stop if scope grows.
+- **Purpose**: Take one clearly-scoped task and grind through it under full engineering discipline until done and verified. This is the default skill when the user names none.
 - **When to enter**: Any concrete implementation task with a clear single scope.
 - **Methodologies**: Loop Engineering, TDD Discipline
 - **Hard rule**: No delegation of the primary task. Retry up to 3 times per step. If the task turns out larger than expected, **stop and report**; never silently expand scope.
@@ -429,15 +429,15 @@ Roles that write code and produce artifacts.
 
 #### `task-general`
 
-- **Purpose**: Read-only coordination of mixed research and execution across unrelated systems when no specialist role fits. Decompose and dispatch specialists; parallelize only where the host supports native subagents.
-- **When to enter**: Task mixes research and execution across several unrelated systems and no single specialized role covers it.
+- **Purpose**: Read-only coordination of mixed research and execution across unrelated systems when no specialist skill fits. Decompose and dispatch specialists; parallelize only where the host supports native subagents.
+- **When to enter**: Task mixes research and execution across several unrelated systems and no single specialized skill covers it.
 - **Hard rule**: Never swallow specialist work that belongs to `task-explore`, `task-librarian`, `task-judge`, `task-multimodal-looker`, or `task-debug`; hand off.
-- **Handoff**: Specialist roles per sub-task; return control to user with aggregated conclusion.
-- **Not for**: Tasks that fit a single role. `task-general` is a fallback, not a first choice.
+- **Handoff**: Specialist skills per sub-task; return control to user with aggregated conclusion.
+- **Not for**: Tasks that fit a single skill. `task-general` is a fallback, not a first choice.
 
 ### 2.3 Search and Research
 
-Roles that gather information without editing.
+Skills that gather information without editing.
 
 #### `task-explore`
 
@@ -461,12 +461,12 @@ Roles that gather information without editing.
 - **Purpose**: Describe or extract information from images, PDFs, screenshots, and diagrams the user shared.
 - **When to enter**: User shared visual media; the parent agent needs a specific piece of information that lives inside it.
 - **Hard rule**: Answer the specific question first. Mark low-confidence readings explicitly. Never fabricate text not visible in the media. If the current tool cannot open the shared media, say so plainly.
-- **Handoff**: Whichever role uses the extracted info.
+- **Handoff**: Whichever skill uses the extracted info.
 - **Not for**: Text-only inputs.
 
 ### 2.4 Review and Diagnosis
 
-Roles that inspect work for defects, at three different points in time.
+Skills that inspect work for defects, at three different points in time.
 
 #### `task-checkpoint` (during execution)
 
@@ -554,7 +554,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 - **Purpose**: Pre-completion review. Chains `task-challenge` (plan-vs-diff walkthrough) → `task-judge` (Standards axis + Spec axis) → `task-explore` (known-bug signatures and leftover sweep) → aggregate.
 - **When to enter**: Before declaring any significant task done; before opening or merging a PR; before releasing a feature branch; after an executor session reports completion.
 - **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.2
-- **Dispatch rule**: Read-only. Standards and Spec axes kept separately attributed and never merged. No `SHIP` verdict if any `[blocker]` remains. Do not "quickly fix" findings inside this role.
+- **Dispatch rule**: Read-only. Standards and Spec axes kept separately attributed and never merged. No `SHIP` verdict if any `[blocker]` remains. Do not "quickly fix" findings inside this workflow.
 - **Handoff**: `task-multi-build` or `task-yugong` to apply the `[blocker]` and `[should-fix]` items.
 - **Not for**: In-progress checks (`task-checkpoint` runs during execution; this runs after).
 
@@ -576,11 +576,20 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 - **Handoff**: `task-yugong` (single-scope fix) or `task-multi-build` (multi-module fix); optional final `task-judge` audit on the fix diff.
 - **Not for**: A first-attempt fix on a straightforward bug (that goes to `job-debug` or `task-yugong` directly).
 
+#### `job-spiral-up`
+
+- **Purpose**: Single-session autonomous supervisor. After one start preauthorization, it discovers, chooses one bounded action, executes, verifies, reviews, enqueues blockers, and repeats to convergence without further user questions.
+- **When to enter**: The user explicitly requests an autonomous run to convergence ("loop until done", "keep going until complete", "infinite loop", or equivalent) and supplies a bounded goal and scope. "Infinite loop" expresses intent only; execution remains bounded.
+- **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.2
+- **Dispatch rule**: Never call interactive planning skills. Default caps are 5 cycles, 39 execution units, 13 units per executor dispatch, and 3 no-progress cycles. Security review fails closed on sensitive or uncertain diffs. `Done` requires `job-review` SHIP, an empty backlog, and `job-security-review` SHIP when required.
+- **Terminal states**: `Done`, bounded `Halted` (including explicit review/security DO-NOT-SHIP), or factual/authorization `Blocked`. Halted/Blocked runs persist their remaining backlog.
+- **Not for**: Ambiguous requests, cross-session recovery, or work requiring unapproved shared-impact actions.
+
 ---
 
 ## Part 3: Scenarios
 
-Three realistic development situations, walked end-to-end. Each shows which roles fire in what order and how the methodologies from Part 1 shape each step.
+Three realistic development situations, walked end-to-end. Each shows which skills fire in what order and how the methodologies from Part 1 shape each step.
 
 ### Scenario A: Ambiguous Request, Medium-Sized Task
 
@@ -659,20 +668,20 @@ Three realistic development situations, walked end-to-end. Each shows which role
 
 **Methodologies exercised**: loop engineering (correctly stopping instead of piling `sleep`s), six-phase loop, SHA1 tag, TDD (applied to the regression test), adversarial audit (if escalated).
 
-**Key discipline**: `sleep()` in a flaky test is a red flag that the underlying race was never diagnosed. The role that fires next is `task-debug`, not another `sleep(2)`.
+**Key discipline**: `sleep()` in a flaky test is a red flag that the underlying race was never diagnosed. The skill that fires next is `task-debug`, not another `sleep(2)`.
 
 ---
 
 ## Closing
 
-**How to start using the roles:**
+**How to start using the skills:**
 
-- Read `AGENTS.md` section 3.0 for semantic routing and section 4 for role cards. Type `@task-<role>` or `@job-<workflow>` when you want to name a role explicitly, or describe the task and let the router choose.
-- When in doubt about which role, look for the closest scenario in Part 3 and follow its chain.
+- Read `AGENTS.md` section 3.0 for semantic routing and section 4 for skill entries. Type `@task-<slug>` or `@job-<slug>` when you want to name a skill explicitly, or describe the task and let the router choose.
+- When in doubt about which skill, look for the closest scenario in Part 3 and follow its chain.
 - When a methodology feels unfamiliar in practice, re-read its section in Part 1 and try it on a small real task.
 
 **Where to go next:**
 
 - `README.md`: installation and per-tool setup.
 - `AGENTS.md`: the live operating rules that AI reads on session start. Section 3.0 is the default state and semantic routing table; sections 3.1-3.10 are the always-on discipline; section 5 is orchestration patterns.
-- `skills/task-<role>.md` and `skills/job-<workflow>.md`: the full behavior contract, output template, and hard constraints for each role or workflow.
+- `skills/task-<slug>.md` and `skills/job-<slug>.md`: the full behavior contract, output template, and hard constraints for each skill or workflow.

@@ -1,12 +1,12 @@
 # 介绍：如何在软件工程中使用开物 (Kaiwu) 编码代理工作流系统
 
-本文档介绍 *aia_kaiwu* 代理工作流系统的设计理念、角色、方法论和典型用法。目标读者是想要理解**这套系统是什么、为什么这么设计、怎么用于真实开发工作**的软件工程师。安装说明见 [`README_zh.md`](README_zh.md)。
+本文档介绍 *aia_kaiwu* 代理工作流系统的设计理念、能力、方法论和典型用法。目标读者是想要理解**这套系统是什么、为什么这么设计、怎么用于真实开发工作**的软件工程师。安装说明见 [`README_zh.md`](README_zh.md)。
 
 ## 前言
 
-*aia_kaiwu* 取名自宋应星 1637 年的[《天工开物》](https://zh.wikipedia.org/wiki/%E5%A4%A9%E5%B7%A5%E5%BC%80%E7%89%A9)，这部书系统记录了当时的全部工艺。每一门都是独立的工艺门类，有自己的师承、工具与做法。每个角色一门手艺，行为契约明确写在 `skills/<role>.md`。角色 slug 分两个前缀。`task-*` 是单步 skill，`job-*` 是多步 workflow。
+*aia_kaiwu* 取名自宋应星 1637 年的[《天工开物》](https://zh.wikipedia.org/wiki/%E5%A4%A9%E5%B7%A5%E5%BC%80%E7%89%A9)，这部书系统记录了当时的全部工艺。每一门都是独立的工艺门类，有自己的师承、工具与做法。每个能力一门手艺，行为契约明确写在 `skills/<slug>.md`。能力 slug 分两个前缀。`task-*` 是原子技能，`job-*` 是多步工作流。
 
-文档分三部分。第一部分定义塑造角色行为的命名方法论。第二部分列出原子 skill 和多步 workflow 的进入条件与 handoff。第三部分走三个真实开发场景到底。第一部分按顺序读；第二、三部分理解第一部分后可任意翻。
+文档分三部分。第一部分定义塑造技能行为的命名方法论。第二部分列出原子技能和多步工作流的进入条件与 handoff。第三部分走三个真实开发场景到底。第一部分按顺序读；第二、三部分理解第一部分后可任意翻。
 
 ---
 
@@ -14,42 +14,42 @@
 
 不同于传统扁平的多 agent 配置（所有能力平铺在同一层），本项目把三个不同关注点分成三层：
 
-| 层 | 文件模式 | 职能 | 数量 |
-|---|---|---|---|
-| 1. 路由 | `AGENTS.md` | 读用户每条消息；按第 3.0 节的语义分类表分发到对应 workflow / skill。没有关键字表、没有 ask-before-dispatch；不明确的意图路由到 `@task-clarify`。 | 1 |
-| 2. Workflow | `skills/job-*.md` | 把 task skill 串成端到端业务流，负责审批门和状态交接，并可持久化已批准的编排产物。生产代码行为留在被调用的 task。 | 8 |
-| 3. Task | `skills/task-*.md` | 原子操作的具体行为契约（Purpose / Hard constraints / Output shape / Handoff）。每个 task 做好一件事。 | 14 |
+| 层 | 文件模式 | 能力 |
+|---|---|---|
+| 路由 | `AGENTS.md` | 读用户每条消息；按第 3.0 节的语义分类表分发到对应工作流或技能。没有关键字表、没有 ask-before-dispatch；不明确的意图路由到 `@task-clarify`。 |
+| 工作流 | `skills/job-*.md` | 把原子技能串成端到端业务流，负责交互策略（审批门或自主预授权）和状态交接，并可持久化已批准的编排产物。生产代码行为留在被调用的技能。 |
+| 技能 | `skills/task-*.md` | 原子操作的具体行为契约（Purpose / Hard constraints / Output shape / Handoff）。每个技能做好一件事。 |
 
 组合方式：
 
 - 用户发消息 → **Layer 1 (`AGENTS.md`)** 按 3.0 节的语义分类表分类意图
-- 多步意图 → 分发到 **Layer 2 (`job-*`)** workflow，workflow 再按定义好的链调 **Layer 3 (`task-*`)** skill
-- 单步原子意图 → 直接分发到 **Layer 3 (`task-*`)** skill
-- 意图不明 → 路由到 `@task-clarify`。router 仍然做 dispatch；澄清通过 skill 调用完成，不在 router 层对话
+- 多步意图 → 分发到 **Layer 2 (`job-*`)** 工作流，工作流再按定义好的链调 **Layer 3 (`task-*`)** 技能
+- 单步原子意图 → 直接分发到 **Layer 3 (`task-*`)** 技能
+- 意图不明 → 路由到 `@task-clarify`。router 仍然做 dispatch；澄清通过技能调用完成，不在 router 层对话
 
 ### 为什么是三层而不是平铺
 
-- 22 个 agent 平铺一层会强迫用户（和 AI）背下 ~20 项能力的适用时机。分层把"当前在什么 workflow"（job）、"在做什么操作"（task）、"怎么决定"（router）分开。
-- Workflow 是可复用的业务流（plan-approve-build-review、安全审计、硬 bug 诊断、代码-文档对齐）。Task 保持职能收窄。Router 按工具能力自适应。
-- 生产代码规则只在 task 里定义。Workflow 只增加审批门、步骤顺序、状态交接和已批准计划产物的持久化规则，不放宽 task 规则。Router 只负责派发。
+- 扁平的 agent 列表会强迫用户（和 AI）背下全部能力的适用时机。分层把"当前在什么工作流"（job）、"在做什么技能"（task）、"怎么决定"（router）分开。
+- 工作流是可复用的业务流（plan-approve-build-review、安全审计、硬 bug 诊断、代码-文档对齐）。技能保持职能收窄。Router 按工具能力自适应。
+- 生产代码规则只在技能里定义。工作流只增加审批门、步骤顺序、状态交接和已批准计划产物的持久化规则，不放宽技能规则。Router 只负责派发。
 
 ### 为什么本设计对便宜模型友好
 
 大部分操作不需要顶级模型。三层结构让便宜模型也能高效低成本地完成工作：
 
 - **Router（第一层）** 本质是语义分类表查表（3.0 节）。AI 把用户意图匹配到表中一行，任何合格的 LLM 都做得可靠。
-- **Workflow（第二层）** 是编号的分发链（`call task-A → task-B → gate → task-C`）。不用开放推理；照编号步骤走。
-- **执行类 Task（第三层）** 使用明确的机器可判 predicate（测试通过、exit code 0、期望输出、HTTP 状态匹配等）作为 done 判据。只读 task 使用结构化判词和带来源的证据。
+- **工作流（第二层）** 是编号的分发链（`call task-A → task-B → gate → task-C`）。不用开放推理；照编号步骤走。
+- **执行类技能（第三层）** 使用明确的机器可判 predicate（测试通过、exit code 0、期望输出、HTTP 状态匹配等）作为 done 判据。只读技能使用结构化判词和带来源的证据。
 - **有界预算**（`task-yugong` 单会话上限 13 basket；no-progress 检测阻断打转）防止跑飞的循环带来成本失控。
-- **歧义走 `@task-clarify`**：一次通过 skill 调用产出的聚焦澄清问题，比五轮 router 层来回猜测便宜得多。
+- **歧义走 `@task-clarify`**：一次通过技能调用产出的聚焦澄清问题，比五轮 router 层来回猜测便宜得多。
 
-综合来看，一个便宜模型读这套配置，可以完整跑通 workflow（plan → build → verify → review），成本上限清晰、成功判据明确，**匹配甚至超过**没有结构约束的顶级模型自由发挥。成本降低、执行加速、AI 在正确条件上停下而不是无限磨。
+综合来看，一个便宜模型读这套配置，可以完整跑通工作流（plan → build → verify → review），成本上限清晰、成功判据明确，**匹配甚至超过**没有结构约束的顶级模型自由发挥。成本降低、执行加速、AI 在正确条件上停下而不是无限磨。
 
 ### 文件布局
 
-- `skills/task-*.md`（14 个）：原子 skill
-- `skills/job-*.md`（8 个）：多步 workflow
-- 工具注册（`.claude/agents/*.md`、`.cursor/agents/*.md`、`.opencode/skills/*/SKILL.md`）统一 symlink 指向 `skills/` 里 22 个规范文件，所有支持的工具看到同一份行为契约。
+- `skills/task-*.md`：原子技能
+- `skills/job-*.md`：多步工作流
+- 工具注册（`.claude/agents/*.md`、`.cursor/agents/*.md`、`.opencode/skills/*/SKILL.md`）统一 symlink 指向 `skills/` 里的规范文件，所有支持的工具看到同一份行为契约。
 
 ### 各宿主工具的能力矩阵
 
@@ -57,11 +57,11 @@
 
 | 能力                                                | opencode           | Cursor             | Claude Code                                                                    | VS Code + Copilot                            |
 | --------------------------------------------------- | ------------------ | ------------------ | ------------------------------------------------------------------------------ | -------------------------------------------- |
-| 单轮内并发派发 subagent                             | 部分（平台内置 `plan`/`build`/`general`/`explore`/`librarian`/`multimodal-looker` 通过 `task` 工具可并发；`task-*` / `job-*` 项目角色通过 `skill(name=...)` 加载，在**共享上下文中顺序执行**） | 是（内置 `explore`/`bash`/`browser`；自定义 `.cursor/agents/*.md`；嵌套 2 层） | 是（`.claude/agents/*.md`；Task 工具并发调用） | 是（自动扫 `.claude/agents/*.md`；`agent/runSubagent` + `.agent.md` wrapper；开启配置项后嵌套 5 层） |
+| 单轮内并发派发 subagent                             | 部分（平台内置 `plan`/`build`/`general`/`explore`/`librarian`/`multimodal-looker` 通过 `task` 工具可并发；`task-*` / `job-*` 项目能力通过 `skill(name=...)` 加载，在**共享上下文中顺序执行**） | 是（内置 `explore`/`bash`/`browser`；自定义 `.cursor/agents/*.md`；嵌套 2 层） | 是（`.claude/agents/*.md`；Task 工具并发调用） | 是（自动扫 `.claude/agents/*.md`；`agent/runSubagent` + `.agent.md` wrapper；开启配置项后嵌套 5 层） |
 | 后台任务带完成回调 / 通知                           | 是（subagent 派发时 `run_in_background=true`；完成后 `<system-reminder>` 通知） | 是（后台 subagent + `stop`/`subagentStop` hook；Cloud Agent + iOS 推送 / Slack / Live Activity） | 部分（Bash 支持 `run_in_background=true`；无独立后台 subagent 回调） | 是（`chat.notifyWindowOnResponseReceived`；Copilot CLI 后台 session；Hooks Preview） |
 | Agent 模式 / 人格间的自动状态交接                   | 是（父 → 子 subagent 带 continuation session id；`task(task_id=…)` 恢复完整上下文） | 是（父 → 子；本地 ↔ 云；主聊天 ↔ 侧栏聊天带上下文；可按 ID 恢复子 subagent） | 部分（子 subagent 返最终结果给父；父来编排下一次派发） | 是（`handoffs:` frontmatter 可选 `send: true` 自动提交；Session Target 下拉；Continue in Cloud；Plan → Agent） |
 
-AI 运行时必须遵守的行为差异（每工具 dispatch 机制、workflow 链语义、opencode built-in 消歧、手工 handoff 兜底规则）在 `AGENTS.md` 第 3.0.1 节。每工具的安装步骤和完整配置见 [`README.md`](README.md)。
+AI 运行时必须遵守的行为差异（各工具的 dispatch 机制、工作流链语义、opencode built-in 消歧、手工 handoff 兜底规则）在 `AGENTS.md` 第 3.0.1 节。各工具的安装步骤和完整配置见 [`README_zh.md`](README_zh.md)。
 
 ---
 
@@ -69,7 +69,7 @@ AI 运行时必须遵守的行为差异（每工具 dispatch 机制、workflow �
 
 命名方法论是行为的原子单位。每种方法论都有明确的触发条件、硬规则、反模式和一个具体的微观例子。先扫下面的表格，然后逐节读。
 
-| 方法论 | 归属角色 | 一句话概括 |
+| 方法论 | 归属能力 | 一句话概括 |
 |---|---|---|
 | 第一性原理推导 | `task-single-plan` | 从不可再简约的约束推导计划，而不是从惯例。 |
 | 第一性原理分解 | `task-clarify` | 把请求分解到根本问题，再回答。 |
@@ -77,7 +77,7 @@ AI 运行时必须遵守的行为差异（每工具 dispatch 机制、workflow �
 | 扩展 → 迁移 → 收缩 | `task-single-plan` | 影响面广的改动分三步走。 |
 | 对抗式审查 | `task-judge`、`task-challenge`、`job-plan`、`job-review`、`job-security-review` | 用对手视角审代码，不为设计辩护。每条 finding 给出具体失败模式。 |
 | Fowler 代码坏味基线 | `task-judge`、`job-review`、`job-security-review` | 仓库无本地约定时应用标准坏味清单。 |
-| TDD 纪律 | 跨角色（`task-multi-build`、`job-build`） | 红→绿→重构，一次一个行为，测试住在 seam 上。 |
+| TDD 纪律 | 跨技能（`task-multi-build`、`job-build`） | 红→绿→重构，一次一个行为，测试住在 seam 上。 |
 | 循环工程 | `task-yugong`、`job-build` | 单一有界任务，不委派，迭代到验证通过。scope 变大就停下汇报。 |
 | 六阶段证据优先回路 | `task-debug`、`job-debug`、`job-debug-deep` | 硬 bug 诊断分六阶段；反馈回路先于任何假设。 |
 | SHA1 debug 前缀与会话记录文件 | `task-debug`、`job-debug-deep` | 每条 debug 日志带会话唯一的 SHA1 标签，一次 grep 清理。 |
@@ -203,7 +203,7 @@ Martin Fowler 的《Refactoring》第 3 章列了一组"代码坏味"，稳定�
 - **同义反复测试**：`expect(add(a, b)).toBe(a + b)`。构造上必然通过；永远不可能和代码不一致。期望值必须来自独立的真源。
 - **水平切片**：同上。
 
-跨所有执行角色（`task-multi-build`、`task-yugong`）。明确豁免的场景包括一次性试探/实验脚本、纯配置修改、文档、依赖版本升级。
+跨所有执行技能（`task-multi-build`、`task-yugong`）。明确豁免的场景包括一次性试探/实验脚本、纯配置修改、文档、依赖版本升级。
 
 加一个 `discount()` 函数。错误做法是先写 10 个测试覆盖每层折扣，再实现。正确做法反过来。先写一个 10% off 的测试，看它失败，实现，重构；下一轮加 20% 层；再下加可叠加逻辑；每轮都产出可运行的代码。
 
@@ -213,7 +213,7 @@ Martin Fowler 的《Refactoring》第 3 章列了一组"代码坏味"，稳定�
 
 大多数真实工作不是多域的，也不受益于委派。委派带来协调成本、责任归属模糊、专家输出冲突的风险。一个专注的执行者能完成一个协调团队用同样时间才辩完的活。
 
-任何单一 scope 明确的具体任务。用户给一个执行任务没指名角色时，`task-yugong` 是**默认角色**。
+任何单一 scope 明确的具体任务。用户给一个执行任务没指名技能时，`task-yugong` 是**默认技能**。
 
 
 - **悄悄扩张范围**：任务变大；`task-yugong` 继续干，做完了用户没要求的东西。
@@ -232,7 +232,7 @@ Martin Fowler 的《Refactoring》第 3 章列了一组"代码坏味"，稳定�
 - **第 5 阶段：修 + 回归测试。** 在正确 seam 上给出回归测试和最小修复方案。执行体**先写回归测试再修**。
 - **第 6 阶段：清理 + post-mortem。** 重读执行体证据，确认原始复现不再复现、回归测试通过、debug instrumentation 清干净。
 
-第 1 阶段（反馈回路）是整个 skill 的本质；后续阶段一旦回路存在都是机械化步骤。没有回路的调试是猜。
+第 1 阶段（反馈回路）是整个技能的本质；后续阶段一旦回路存在都是机械化步骤。没有回路的调试是猜。
 
 抵抗了首次修复的硬 bug 或性能回归、"有时会挂"的 flaky 行为、无明显原因的症状链。
 
@@ -330,7 +330,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - 任何大动作前（schema migration、部署、`git push`）。
 - 执行者报告漂移或异常摩擦时。
 
-执行漂移从执行内部看不见。一个位于执行循环之外的检查点角色能在"我们在第 4 步了但计划假设第 3 步测试应该已经完成"这类漂移之前发现问题。廉价干预打败昂贵返工。
+执行漂移从执行内部看不见。一个位于执行循环之外的检查点技能能在"我们在第 4 步了但计划假设第 3 步测试应该已经完成"这类漂移之前发现问题。廉价干预打败昂贵返工。
 
 **何时不用。** 计划未存在之前（那是 `task-clarify` 的活）。所有工作完成之后（那是 `task-judge` 的活）。每一步都查（过度检查，协调成本 > 收益）。
 
@@ -342,13 +342,13 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 ---
 
-## 第二部分：角色
+## 第二部分：技能与工作流
 
-角色按工作阶段分组。每张角色卡列出目的、何时进入、内嵌方法论、handoff 目标、以及**何时不用**这个角色。
+能力按工作阶段分组。每个条目列出目的、何时进入、内嵌方法论、handoff 目标、以及**何时不用**。
 
 ### 2.1 决策与规划
 
-在写代码之前决定**做什么**、**按什么顺序**的角色。
+在写代码之前决定**做什么**、**按什么顺序**的技能。
 
 #### `task-clarify`
 
@@ -400,7 +400,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 ### 2.2 执行
 
-写代码、产出产物的角色。
+写代码、产出产物的技能。
 
 #### `task-multi-build`
 
@@ -411,10 +411,10 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **Handoff**：`task-judge`（实现后审计）。
 - **不用于**：单一 scope 任务。用 `task-yugong`。多域协调成本只在工作真正跨域时值得。
 
-#### `task-yugong`（愚公，默认角色）
+#### `task-yugong`（愚公，默认技能）
 
-- **命名由来**：愚公移山的寓言里，愚公一点一点地移山。这是"有界、耐心、不委派"的劳动典范，毅力最终换来外力相助。这个角色是默认执行者。拿一个界定清楚的任务，磨、验证，scope 变大就停。
-- **目的**：拿一个界定清楚的任务，在完整工程纪律下磨到验证通过。用户没指名角色时，默认就是它。
+- **命名由来**：愚公移山的寓言里，愚公一点一点地移山。这是"有界、耐心、不委派"的劳动典范，毅力最终换来外力相助。这个技能是默认执行者。拿一个界定清楚的任务，磨、验证，scope 变大就停。
+- **目的**：拿一个界定清楚的任务，在完整工程纪律下磨到验证通过。用户没指名技能时，默认就是它。
 - **何时进入**：任何单一 scope 的具体实现任务。
 - **方法论**：循环工程、TDD 纪律
 - **硬规则**：主任务不委派。每步最多重试 3 次。任务比预期大就**停下汇报**；绝不悄悄扩张。
@@ -423,15 +423,15 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 #### `task-general`
 
-- **目的**：跨不相关系统的只读混合任务协调器，没有专家角色覆盖时的兜底。拆解并派发专家；只有宿主支持原生 subagent 时才并行。
-- **何时进入**：任务混合研究和执行，跨几个不相关系统，没有单一专家角色能覆盖。
+- **目的**：跨不相关系统的只读混合任务协调器，没有专家技能覆盖时的兜底。拆解并派发专家；只有宿主支持原生 subagent 时才并行。
+- **何时进入**：任务混合研究和执行，跨几个不相关系统，没有单一专家技能能覆盖。
 - **硬规则**：不吞属于 `task-explore`、`task-librarian`、`task-judge`、`task-multimodal-looker` 或 `task-debug` 的专家活；交给他们。
-- **Handoff**：各子任务对应的专家角色；聚合结论后交回用户。
-- **不用于**：能装进单一角色的任务。`task-general` 是兜底，不是首选。
+- **Handoff**：各子任务对应的专家技能；聚合结论后交回用户。
+- **不用于**：能装进单一技能的任务。`task-general` 是兜底，不是首选。
 
 ### 2.3 搜索与研究
 
-不改文件、只搜集信息的角色。
+不改文件、只搜集信息的技能。
 
 #### `task-explore`
 
@@ -455,12 +455,12 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **目的**：描述或提取用户分享的图片、PDF、截图、图表里的信息。
 - **何时进入**：用户分享了视觉媒体；父 agent 需要媒体里的具体信息。
 - **硬规则**：先回答用户具体问题。低置信度读物明确标出。绝不编造媒体里看不到的文字。当前工具打不开分享的媒体就直说。
-- **Handoff**：需要提取信息的下一个角色。
+- **Handoff**：需要提取信息的下一个技能。
 - **不用于**：纯文本输入。
 
 ### 2.4 审查与诊断
 
-在三个不同时点检查工作缺陷的角色。
+在三个不同时点检查工作缺陷的技能。
 
 #### `task-checkpoint`（执行过程中）
 
@@ -494,9 +494,9 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 ---
 
-### 2.5 Workflow
+### 2.5 工作流
 
-把 `task-*` skill 串成端到端业务流的多步 workflow。每个 workflow 文件是路由/组合谱；硬约束都在被调用的 skill 里。
+把 `task-*` 技能串成端到端业务流的多步工作流。每个工作流文件负责路由、组合和交互策略；生产代码规则留在被调用的技能里。
 
 #### `job-plan`
 
@@ -505,7 +505,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.2 节
 - **调度规则**: 模糊请求不许跳过 `task-clarify`。第 6 步（用户批准）之前不许推进。批准前不许写 `spec/<slug>/`。写入时不许生造 step 3 未产出的可选 artifact（design/guide/README）。
 - **交接**: `job-build`（持久化完成后；执行器从磁盘读 `spec/<slug>/plan.md`）。
-- **不适用**: 单步任务（直接走 `task-yugong` 或具体 skill）。
+- **不适用**: 单步任务（直接走 `task-yugong` 或具体技能）。
 
 #### `job-build`
 
@@ -521,7 +521,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **目的**: 通过 `task-checkpoint` 按已批准计划检查执行中工作（continue / adjust plan / halt）。
 - **入场时机**: 执行中"跑到哪了"、执行体出现偏移，或被 `job-build` 每 ~3 步自动派发。
 - **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.2 节
-- **调度规则**: 不在这里做完成后审查。本 workflow 不动文件。
+- **调度规则**: 不在这里做完成后审查。本工作流不动文件。
 - **交接**: `continue` 回执行体（`task-yugong` / `task-multi-build`）；`adjust plan` → `job-plan`；`halt` → 用户。
 - **不适用**: 完成后的综合审查（用 `job-review`）。
 
@@ -546,11 +546,11 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 #### `job-review`
 
 - **目的**: 收尾前的完成审查。链路是 `task-challenge`（计划 vs 实际 diff 逐条核对）→ `task-judge`（Standards 轴 + Spec 轴）→ `task-explore`（已知 bug 特征与残留扫描）→ 聚合结论。
-- **入场时机**: 声明任务完成前；开 PR 或合并 PR 前；feature 分支发布前；执行类角色报告收尾之后。
+- **入场时机**: 声明任务完成前；开 PR 或合并 PR 前；feature 分支发布前；执行类技能报告收尾之后。
 - **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.2 节
-- **调度规则**: 只读。Standards 与 Spec 两条轴分开归属，绝不合并。只要还有 `[blocker]`，绝不给 `SHIP`。本角色内不"顺手改一下"。
+- **调度规则**: 只读。Standards 与 Spec 两条轴分开归属，绝不合并。只要还有 `[blocker]`，绝不给 `SHIP`。本工作流内不"顺手改一下"。
 - **交接**: 由 `task-multi-build` 或 `task-yugong` 承接 `[blocker]` 和 `[should-fix]` 项。
-- **不适用**: 执行过程中的检查（那是 `task-checkpoint`，它跑在执行**中**，本 workflow 跑在执行**后**）。
+- **不适用**: 执行过程中的检查（那是 `task-checkpoint`，它跑在执行**中**，本工作流跑在执行**后**）。
 
 #### `job-security-review`
 
@@ -570,11 +570,20 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **交接**: `task-yugong`（单模块修复）或 `task-multi-build`（跨模块修复）；可选在第 6 阶段末尾再做一次 `task-judge` 审查。
 - **不适用**: 首次尝试就能修好的简单 bug（直接走 `job-debug` 或 `task-yugong`）。
 
+#### `job-spiral-up`
+
+- **目的**: 单会话自主 supervisor。开始时一次预授权后，自行发现、选择一个有界动作、执行、验证、审查、加入 blocker，再循环到收敛，不再问用户。
+- **入场时机**: 用户明确要求自主跑到收敛（如“循环直到结束”“一直到结束”“持续执行直到完成”“不要停，直到完成”“无限循环”），并给出有界目标和 scope。“无限循环”只表达意图，实际执行始终有界。
+- **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.2 节
+- **调度规则**: 不调用交互式规划技能。默认上限为 5 个 cycle、39 个 execution unit、单次 executor 最多 13 个 unit、3 个 no-progress cycle。敏感或无法确定的 diff 必须做安全审查。`Done` 要求 `job-review` 返回 SHIP、backlog 为空；需要时 `job-security-review` 也必须返回 SHIP。
+- **终止状态**: `Done`、有界 `Halted`（包括明确的 review/security DO-NOT-SHIP）或事实/授权 `Blocked`。Halted/Blocked 会持久化剩余 backlog。
+- **不适用**: 模糊请求、跨 session 恢复，或需要未预授权共享影响操作的工作。
+
 ---
 
 ## 第三部分：场景
 
-三个真实开发情景到底。每个都展示角色按什么顺序触发，方法论如何在每一步塑造行为。
+三个真实开发情景到底。每个都展示技能按什么顺序触发，方法论如何在每一步塑造行为。
 
 ### 场景 A：模糊请求，中等规模任务
 
@@ -636,7 +645,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 **走一遍：**
 
-1. **`task-yugong`** 是用户第一次说"修这个测试"时的默认角色。它试了 `sleep(1)`。表面修好了，flakiness 又回来了。`task-yugong` 正确地停下汇报，而不是加 `sleep(2)`。它没有通过打补丁掩盖症状来悄悄扩张 scope。
+1. **`task-yugong`** 是用户第一次说"修这个测试"时的默认技能。它试了 `sleep(1)`。表面修好了，flakiness 又回来了。`task-yugong` 正确地停下汇报，而不是加 `sleep(2)`。它没有通过打补丁掩盖症状来悄悄扩张 scope。
 2. 用户说"还是 flaky"。这是 `task-debug` 的触发信号。
 3. **`task-debug` 第 1 阶段**：建反馈回路。本地用 `--repeat 200` 跑测试。观察到 200 次里 4 次失败。回路能报红、可确定性够（4/200 可重现）、快（30 秒）、可 agent 单独跑。记下反馈回路命令。
 4. **`task-debug` 第 2 阶段**：复现 + 最小化。确认失败是用户提到的具体症状（第 87 行那个具体 assertion），不是附近另一个。把测试砍到仍然 3/200 挂的最小函数体。剩下的每个元素都有承重。
@@ -653,20 +662,20 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 **触发的方法论**：循环工程（正确停下而不是加 `sleep`）、六阶段回路、SHA1 标签、TDD（用于回归测试）、对抗式审计（如果升级）。
 
-**关键纪律**：flaky 测试里的 `sleep()` 是红旗，说明底层 race 从未诊断过。下一个触发的角色是 `task-debug`，不是 `sleep(2)`。
+**关键纪律**：flaky 测试里的 `sleep()` 是红旗，说明底层 race 从未诊断过。下一个触发的技能是 `task-debug`，不是 `sleep(2)`。
 
 ---
 
 ## 结尾
 
-**如何开始用这些角色：**
+**如何开始用这些技能：**
 
-- 读 `AGENTS.md` 第 3.0 节了解语义路由，第 4 节查看角色卡。需要显式指定时输入 `@task-<role>` 或 `@job-<workflow>`；否则描述任务让路由器选择。
-- 不确定用哪个角色时，找第三部分里最接近的场景，跟着链走。
+- 读 `AGENTS.md` 第 3.0 节了解语义路由，第 4 节查看技能条目。需要显式指定时输入 `@task-<slug>` 或 `@job-<slug>`；否则描述任务让路由器选择。
+- 不确定用哪个技能时，找第三部分里最接近的场景，跟着链走。
 - 某个方法论用起来陌生时，回第一部分再读那节，找一个小的真实任务试。
 
 **下一步去哪：**
 
 - `README.md`：安装和分工具配置。
 - `AGENTS.md`：AI 每次 session 开始时读的操作规则。第 3.0 节是默认状态和语义路由表；第 3.1-3.10 节是 always-on 纪律；第 5 节是编排模式。
-- `skills/task-<role>.md` 和 `skills/job-<workflow>.md`：每个角色或工作流的完整行为契约、输出模板、硬约束。
+- `skills/task-<slug>.md` 和 `skills/job-<slug>.md`：每个技能或工作流的完整行为契约、输出模板、硬约束。

@@ -42,7 +42,7 @@ Remonstrate against a written plan for clarity, completeness, verifiability.
 
 ## Adversarial critique posture
 
-Read the plan as a hostile junior engineer would execute it: assume every step will be interpreted in the worst reasonable way. Ask, for each step, "where could this be misread, skipped, or half-done and still look completed?" Flag any wording that leans on shared context you cannot see, any "obviously" / "just" / "should be straightforward" that skips over a real decision, and any absent negative case (what does the plan do when the happy path breaks?). Silence and polite hedging are the failure mode this role exists to prevent.
+Read the plan as a hostile junior engineer would execute it: assume every step will be interpreted in the worst reasonable way. Ask, for each step, "where could this be misread, skipped, or half-done and still look completed?" Flag any wording that leans on shared context you cannot see, any "obviously" / "just" / "should be straightforward" that skips over a real decision, and any absent negative case (what does the plan do when the happy path breaks?). Silence and polite hedging are the failure mode this skill exists to prevent.
 
 ## Hard constraints
 

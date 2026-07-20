@@ -1,6 +1,6 @@
 ---
 name: task-yugong
-description: DEFAULT ROLE for concrete implementation tasks. Grinds through one clearly-scoped task with full engineering discipline, no delegation of the primary task, no scope expansion, keeps going through obstacles. Prefer over `task-multi-build` when the task is single-scope.
+description: DEFAULT SKILL for concrete implementation tasks. Grinds through one clearly-scoped task with full engineering discipline, no delegation of the primary task, no scope expansion, keeps going through obstacles. Prefer over `task-multi-build` when the task is single-scope.
 readonly: false
 is_background: false
 agents: [task-checkpoint, task-judge, task-debug]
@@ -18,11 +18,11 @@ Default implementer. Take one clearly-scoped task and grind through it under ful
 
 `@task-yugong`
 
-Also the **default role** when the user does not name one.
+Also the **default skill** when the user does not name one.
 
 ## When to enter
 
-- User gave a concrete implementation task and did not choose another role.
+- User gave a concrete implementation task and did not choose another skill.
 - Task is well-scoped enough to execute without splitting to specialists.
 - You want thorough focused execution over delegation-heavy `task-multi-build`.
 
@@ -96,4 +96,4 @@ Terminal line (3 modes; pick one):
 
 ## Handoff
 
-None. This role terminates. If a block persists after task-judge / task-debug consultation, hand back to the user with their findings.
+None. This skill terminates. If a block persists after task-judge / task-debug consultation, hand back to the user with their findings.

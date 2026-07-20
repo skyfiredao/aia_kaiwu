@@ -7,18 +7,18 @@ alwaysApply: true
 
 Load the full rules from @AGENTS.md and follow them as your operating instructions for every request in this workspace.
 
-## Roles
+## Capabilities
 
-Semantic routing lives in @AGENTS.md section 3.0; the full role index lives in section 4. Behavior contracts live in `skills/<role>.md` and are mounted as native subagents at `.cursor/agents/<role>.md`.
+Semantic routing lives in @AGENTS.md section 3.0; the full capability index lives in section 4. Behavior contracts live in `skills/<name>.md` and are mounted as native subagents at `.cursor/agents/<name>.md`.
 
-Use `@name` for explicit role selection in Cursor; it resolves to the native subagent under `.cursor/agents/`. When no explicit trigger is given, the assistant infers the correct role from the semantic routing table in @AGENTS.md section 3.0.
+Use `@name` for explicit capability selection in Cursor; it resolves to the native subagent under `.cursor/agents/`. When no explicit trigger is given, the assistant infers the correct capability from the semantic routing table in @AGENTS.md section 3.0.
 
 ## Reference sections in @AGENTS.md
 
 - Section 3.0: semantic routing table and default dispatch.
 - Section 3.0.1: tool-specific behavior (dispatch, workflow chain semantics, platform disambiguation).
 - Section 3: always-on workflow discipline (intent gate, verification, type-safety hard blocks, TDD, git discipline).
-- Section 4: role card index with links into `skills/<role>.md`.
+- Section 4: capability index with links into `skills/<name>.md`.
 - Section 5: multi-agent orchestration chains.
 - Section 6: anti-patterns and red flags.
 

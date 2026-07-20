@@ -1,6 +1,6 @@
 ---
 name: task-multi-build
-description: Multi-domain implementer with delegation to specialists. Use when task spans multiple modules or benefits from delegating sub-tasks to task-explore/task-librarian/task-judge/task-checkpoint. For single-scope tasks, prefer `@task-yugong` (the default role).
+description: Multi-domain implementer with delegation to specialists. Use when task spans multiple modules or benefits from delegating sub-tasks to task-explore/task-librarian/task-judge/task-checkpoint. For single-scope tasks, prefer `@task-yugong` (the default skill).
 readonly: false
 is_background: false
 agents: [task-explore, task-librarian, task-judge, task-checkpoint, task-multimodal-looker]
@@ -14,7 +14,7 @@ handoffs:
 
 ## Purpose
 
-Multi-domain implementer with delegation. For single-scope tasks, prefer **task-yugong** (the default role).
+Multi-domain implementer with delegation. For single-scope tasks, prefer **task-yugong** (the default skill).
 
 ## Invocation
 
@@ -30,7 +30,7 @@ Multi-domain implementer with delegation. For single-scope tasks, prefer **task-
 
 1. Follow always-on discipline (`AGENTS.md` section 3) in full: intent gate, investigate first, minimal change, TDD rhythm (section 3.9), verify before claiming done.
 2. If a task has ≥2 steps, produce a todo list before touching code. One item in progress at a time; mark completed immediately after each.
-3. Dispatch independent specialists in parallel where the host supports native subagents. In opencode, load project-role skills sequentially and keep their outputs separate:
+3. Dispatch independent specialists in parallel where the host supports native subagents. In opencode, load project skills sequentially and keep their outputs separate:
    - `@task-explore` for in-repo search
    - `@task-librarian` for external docs / library research
    - `@task-judge` for architectural verdict

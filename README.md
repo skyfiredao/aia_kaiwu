@@ -1,8 +1,8 @@
 # aia_kaiwu: AI Coding Agent Workflow System
 
-A workflow-oriented agent system that runs the same set of engineering roles across modern AI coding assistants (opencode, Cursor, Claude Code, VS Code + Copilot).
+A workflow-oriented agent system that runs the same set of engineering skills and workflows across modern AI coding assistants (opencode, Cursor, Claude Code, VS Code + Copilot).
 
-Where the host tool has native subagent orchestration, the roles ship as **real subagents**; the manual multi-agent pattern in [`AGENTS.md`](AGENTS.md) section 5.1 acts as a portable fallback.
+Where the host tool has native subagent orchestration, capabilities load as **real subagents**; the manual multi-agent pattern in [`AGENTS.md`](AGENTS.md) section 5.1 acts as a portable fallback.
 
 中文版说明：[README_zh.md](README_zh.md)。
 
@@ -10,15 +10,15 @@ Where the host tool has native subagent orchestration, the roles ship as **real 
 
 "aia_kaiwu" takes its name from [*Tiangong Kaiwu*](https://en.wikipedia.org/wiki/Tiangong_Kaiwu), the 1637 encyclopedia by Song Yingxing. That book catalogued every craft and production technique of the era: agriculture, weaving, metallurgy, ceramics, weaponry. Each craft was a distinct discipline with its own masters and its own protocol.
 
-One role per craft, each with a specific behavior contract in `skills/<role>.md`. Role slugs use two prefixes: `task-*` for single-step skills, `job-*` for multi-step workflows.
+One capability per craft, each with a specific behavior contract in `skills/<slug>.md`. Capability slugs use two prefixes: `task-*` for atomic skills, `job-*` for multi-step workflows.
 
 ## Design overview
 
 Three-layer architecture (not a flat multi-agent list):
 
 - **Layer 1, Router** (`AGENTS.md`): reads every user message; classifies intent semantically per section 3.0's routing table and dispatches to the right workflow/skill. No keyword table, no ask-before-dispatch; ambiguous intent routes to `@task-clarify`.
-- **Layer 2, Workflow** (`skills/job-*.md`, 8 files): multi-step chains that compose task skills, own approval gates and state handoffs, and may persist approved orchestration artifacts.
-- **Layer 3, Task** (`skills/task-*.md`, 14 files): atomic operations with concrete behavior contracts. Each does one thing well.
+- **Layer 2, Workflow** (`skills/job-*.md`): multi-step chains that compose task skills, own interaction policy (approval gates or autonomous preauthorization) and state handoffs, and may persist approved orchestration artifacts.
+- **Layer 3, Task** (`skills/task-*.md`): atomic operations with concrete behavior contracts. Each does one thing well.
 
 **Cheap-model friendly.** Router is a semantic classification table; workflows are numbered dispatch chains; execution tasks use machine-verifiable done predicates; read-only tasks return structured verdicts; budgets are bounded (`task-yugong` caps at 13 baskets).
 
@@ -33,7 +33,7 @@ The full design walkthrough is in [`INTRODUCTION.md`](INTRODUCTION.md), under "D
 ├── README.md                              ← this file
 ├── README_zh.md                           ← Chinese version
 ├── windows_setup.ps1                      ← Windows workspace setup script
-├── skills/                                ← canonical role definitions
+├── skills/                                ← canonical capability definitions
 │   ├── task-single-plan.md
 │   ├── task-multi-build.md
 │   ├── task-general.md
@@ -55,7 +55,8 @@ The full design walkthrough is in [`INTRODUCTION.md`](INTRODUCTION.md), under "D
 │   ├── job-align.md
 │   ├── job-review.md
 │   ├── job-security-review.md
-│   └── job-debug-deep.md
+│   ├── job-debug-deep.md
+│   └── job-spiral-up.md
 ├── .opencode/
 │   └── skills/
 │       └── <slug>/SKILL.md                ← symlink → ../../../skills/<slug>.md
@@ -67,7 +68,7 @@ The full design walkthrough is in [`INTRODUCTION.md`](INTRODUCTION.md), under "D
     └── agents/                            ← symlinks → ../../skills/*.md
 ```
 
-Update `skills/<role>.md` or `AGENTS.md`, and the symlinks under `.claude/agents/`, `.cursor/agents/`, `.opencode/skills/*/SKILL.md`, and `CLAUDE.md → AGENTS.md` follow automatically.
+Update `skills/<slug>.md` or `AGENTS.md`, and the symlinks under `.claude/agents/`, `.cursor/agents/`, `.opencode/skills/*/SKILL.md`, and `CLAUDE.md → AGENTS.md` follow automatically.
 
 ## Installation
 
@@ -81,7 +82,7 @@ Layout:
 workspace/
 ├── AGENTS.md               ← from aia_kaiwu
 ├── CLAUDE.md               ← from aia_kaiwu
-├── skills/                 ← from aia_kaiwu (canonical role specs)
+├── skills/                 ← from aia_kaiwu (canonical capability definitions)
 ├── .claude/                ← from aia_kaiwu
 ├── .cursor/                ← from aia_kaiwu
 ├── .opencode/              ← from aia_kaiwu (opencode skill registration)
@@ -126,11 +127,9 @@ git clone <source-repo-url> source-repo
 
 If PowerShell execution policy blocks the script: `powershell -ExecutionPolicy Bypass -File .\aia_kaiwu\windows_setup.ps1`.
 
-To pull upstream aia_kaiwu updates later, re-run `.\aia_kaiwu\windows_setup.ps1`; it pulls updates and asks before replacing generated config. Use `-Force` for unattended replacement.
+To pull upstream aia_kaiwu updates later, re-run `.\aia_kaiwu\windows_setup.ps1`; it pulls updates and replaces generated config.
 
-> **Note:** `windows_setup.ps1` replaces generated `AGENTS.md`, `CLAUDE.md`, `skills/`, `.claude/agents/`, `.cursor/agents/`, `.opencode/skills/`, and `.cursor/rules/agents.mdc`. Other `.cursor/rules/` files are preserved. The `aia_kaiwu\` clone is authoritative; do not hand-edit generated copies.
-
-The script refuses a drive root or Git repository as the destination, prints the installed source revision, and warns when the `aia_kaiwu\` checkout has local changes.
+> **Note:** The `aia_kaiwu\` clone is authoritative; the script replaces generated workspace copies.
 
 Daily use: open the workspace root (`~/workspace` on macOS / Linux, `C:\workspace` on Windows) in your AI tool. Run git commands from inside `source-repo/`.
 
@@ -140,7 +139,7 @@ Multiple source repos can live under one workspace; they share the same agent co
 
 | Tool                                     | Native `AGENTS.md` at root | Bridge / instruction file we ship  | Native subagent files we ship        | Parallel subagent orchestration?     |
 | ---------------------------------------- | -------------------------- | ---------------------------------- | ------------------------------------ | ------------------------------------ |
-| **opencode**                             | native                   | none                       | none (roles reached via `skill(name=...)` on demand) | `task` tool with parallel + background dispatch (platform built-ins only) |
+| **opencode**                             | native                   | none                       | none (skills reached via `skill(name=...)` on demand) | `task` tool with parallel + background dispatch (platform built-ins only) |
 | **Cursor**                               | native                   | `.cursor/rules/agents.mdc` | `.cursor/agents/*.md` | built-in, nested subagents        |
 | **Claude Code** (Anthropic CLI)          | via bridge                 | `CLAUDE.md → AGENTS.md`             | `.claude/agents/*.md` | Task tool, parallel                |
 | **VS Code + Copilot Chat**               | native (`chat.useAgentsMdFile`) | also honors `CLAUDE.md` via `chat.useClaudeMdFile` | auto-scans `.claude/agents/*.md` | via `runSubagent`, nested to 5 with setting |
@@ -156,12 +155,12 @@ Full per-tool setup detail follows.
 
 ## Default state after activation
 
-Once any of the tools above loads `AGENTS.md`, the assistant is in the **aia_kaiwu role ecosystem by default**:
+Once any of the tools above loads `AGENTS.md`, the assistant is in the **aia_kaiwu skill/workflow system by default**:
 
-- The active role is `task-yugong` (single scoped task, no delegation, grind until done).
+- The active skill is `task-yugong` (single scoped task, no delegation, grind until done).
 - Internal delegation goes only to `task-*` and `job-*` sub-agents. The platform's built-in `plan`/`build`/`general`/`explore`/`librarian`/`multimodal-looker` are never used as a shortcut.
 - Explicit user invocation overrides this. `@plan` calls opencode's platform plan; `@task-single-plan` calls this project's strict plan.
-- If the message better fits another custom role (`task-clarify` for ambiguous scope, `task-single-plan` for architecture, `task-explore` for search, etc.), the assistant routes there per the semantic routing table in `AGENTS.md` section 3.0.
+- If the message better fits another custom skill (`task-clarify` for ambiguous scope, `task-single-plan` for architecture, `task-explore` for search, etc.), the assistant routes there per the semantic routing table in `AGENTS.md` section 3.0.
 
 Full rule spec: `AGENTS.md` section 3.0.
 
@@ -175,8 +174,8 @@ opencode reads `AGENTS.md` at the workspace root as always-on instructions.
 
 | File | Loaded when | Purpose |
 |---|---|---|
-| `AGENTS.md` (repo root) | Session start | Always-on operating rules, including section 3.0 default routing to `task-*` / `job-*` roles |
-| `skills/task-*.md` and `skills/job-*.md` | On demand via `skill` tool | Full behavior contract for each role or workflow, pulled in when the AI needs it |
+| `AGENTS.md` (repo root) | Session start | Always-on operating rules, including section 3.0 default routing to `task-*` / `job-*` skills |
+| `skills/task-*.md` and `skills/job-*.md` | On demand via `skill` tool | Full behavior contract for each skill or workflow, pulled in when the AI needs it |
 
 ### Verify it works
 
@@ -187,9 +186,9 @@ opencode reads `AGENTS.md` at the workspace root as always-on instructions.
 
 ### Known limitations
 
-- No native `@task-<role>` / `@job-<workflow>` subagent dispatch. These names remain text-level role selectors; the AI maps them to `skill(name="<role>")` in the parent context.
-- No `subagent_type="task-<role>"` or `subagent_type="job-<workflow>"` in the `task` tool. Sub-agents dispatched via `task` use opencode's platform built-ins (`plan`, `build`, `general`, `explore`, `librarian`, `multimodal-looker`), not the strict `task-*` / `job-*` contracts.
-- Skills load on demand rather than always-on; long sessions may need a mid-session `skill(name="task-<role>")` or `skill(name="job-<workflow>")` re-invocation.
+- No native `@task-<slug>` / `@job-<slug>` subagent dispatch. These names remain text-level skill selectors; the AI maps them to `skill(name="<slug>")` in the parent context.
+- No `subagent_type="task-<slug>"` or `subagent_type="job-<slug>"` in the `task` tool. Sub-agents dispatched via `task` use opencode's platform built-ins (`plan`, `build`, `general`, `explore`, `librarian`, `multimodal-looker`), not the strict `task-*` / `job-*` contracts.
+- Skills load on demand rather than always-on; long sessions may need a mid-session `skill(name="task-<slug>")` or `skill(name="job-<slug>")` re-invocation.
 
 ---
 
@@ -203,14 +202,14 @@ Cursor honors `AGENTS.md` at the workspace root natively as always-on rules.
 |---|---|---|
 | `AGENTS.md` (repo root) | Session start | Always-on operating rules |
 | `.cursor/rules/agents.mdc` | Session start (`alwaysApply: true`) | Bridge that references `@AGENTS.md` |
-| `.cursor/agents/*.md` | On agent invocation | Custom agent personas (all roles) |
+| `.cursor/agents/*.md` | On agent invocation | Native subagents for all capabilities |
 
-Each `.cursor/agents/<role>.md` is a symlink to `skills/<role>.md`. YAML frontmatter carries `name`, `description`, `model`, `readonly`, and `is_background`.
+Each `.cursor/agents/<slug>.md` is a symlink to `skills/<slug>.md`. YAML frontmatter carries `name`, `description`, `model`, `readonly`, and `is_background`.
 
 ### Verify it works
 
 1. Open the repo in Cursor and start a chat.
-2. Type `@`: the agent picker should list role names alongside Cursor's built-ins.
+2. Type `@`: the agent picker should list capability names alongside Cursor's built-ins.
 3. Send `@task-judge run a two-axis audit on the current diff` and confirm the custom persona responds under its adversarial audit contract.
 
 ### Parallel and background dispatch
@@ -244,22 +243,22 @@ Claude Code reads `CLAUDE.md` at the repo root as project instructions and also 
 | File | Loaded when | Purpose |
 |---|---|---|
 | `CLAUDE.md → AGENTS.md` (symlink) | Session start | Project instructions |
-| `.claude/agents/*.md` | On agent invocation | Custom agent personas (all roles) |
+| `.claude/agents/*.md` | On agent invocation | Native subagents for all capabilities |
 
-Each `.claude/agents/<role>.md` is a symlink to `skills/<role>.md`. YAML frontmatter uses Claude Code's schema: `name`, `description`, optional `tools` whitelist, optional `model`.
+Each `.claude/agents/<slug>.md` is a symlink to `skills/<slug>.md`. YAML frontmatter uses Claude Code's schema: `name`, `description`, optional `tools` whitelist, optional `model`.
 
 ### Verify it works
 
 1. `cd` into the repo and start `claude`.
 2. Ask: "What agents can you dispatch to?"
-3. Expect the roles listed as first-class subagents.
+3. Expect the capabilities listed as first-class subagents.
 4. Dispatch: "Use the Task tool to run `@task-explore` and `@task-librarian` in parallel." Two subagent runs should appear side by side.
 
 ### Parallel and background dispatch
 
 - **Parallel subagents**: the Task tool spawns subagents from one turn. Multiple Task calls in a single message run concurrently.
 - **Background shell**: the Bash tool supports `run_in_background=true` for long shell commands with output polling. This is for shell tasks, not for subagent orchestration.
-- **Cross-subagent handoff**: none. The subagent returns its final message to the parent; the parent orchestrates the next dispatch by calling Task again with the next role.
+- **Cross-subagent handoff**: none. The subagent returns its final message to the parent; the parent orchestrates the next dispatch by calling Task again with the next skill.
 
 ### Known limitations
 
@@ -279,7 +278,7 @@ VS Code Copilot Chat auto-scans `.claude/agents/*.md` at the workspace root.
 |---|---|---|
 | `AGENTS.md` (repo root) | `chat.useAgentsMdFile` | **on** |
 | `CLAUDE.md` (repo root, symlink) | `chat.useClaudeMdFile` | **on** |
-| `.claude/agents/*.md` (role symlinks) | auto (default agent location) | on |
+| `.claude/agents/*.md` (skill symlinks) | auto (default agent location) | on |
 
 Verbatim from the VS Code docs:
 
@@ -292,19 +291,19 @@ Reference: <https://code.visualstudio.com/docs/agent-customization/custom-agents
 ### Verify it works
 
 1. Open the repo in VS Code, sign in to Copilot Chat.
-2. Open Chat view → agents dropdown → confirm all roles appear alongside built-in agents.
+2. Open Chat view → agents dropdown → confirm all capabilities appear alongside built-in agents.
 3. Select one (e.g. `@task-judge`) and send a trivial prompt to confirm the persona instructions are in effect.
-4. If a role does not appear, right-click Chat view → **Diagnostics** → look for parse errors on the `.claude/agents/*.md` files.
+4. If a skill does not appear, right-click Chat view → **Diagnostics** → look for parse errors on the `.claude/agents/*.md` files.
 
 ### Optional: enable `handoffs:` / `agents:` frontmatter
 
 The Claude sub-agent format supported in `.claude/agents/` covers `name`, `description`, `tools`, and `disallowedTools`. It does **not** support VS Code-only extras: `handoffs:` (post-response one-click buttons), `agents:` (parallel subagent allow-list), `user-invocable`, `disable-model-invocation`, `target`, `mcp-servers`, or `hooks`.
 
-If you want those, hand-write `.github/agents/<role>.agent.md`:
+If you want those, hand-write `.github/agents/<slug>.agent.md`:
 
 ```yaml
 ---
-name: <role>
+name: <slug>
 description: <one-line description shown in the agents dropdown>
 model:
   - Claude Sonnet 4.5 (copilot)
@@ -318,19 +317,19 @@ tools:
   - search/usages
   - web/fetch
 agents:
-  - <other-role>
+  - <other-slug>
 user-invocable: true
 disable-model-invocation: false
 target: vscode
 handoffs:
   - label: <button label>
-    agent: <target-role>
+    agent: <target-slug>
     prompt: <pre-filled prompt>
     send: false                    # true = auto-submit
     model: Claude Sonnet 4.5 (copilot)
 ---
 
-<paste the full contents of skills/<role>.md body>
+<paste the full contents of skills/<slug>.md body>
 ```
 
 **The `agent`-in-`tools:` gotcha.** Direct quote from the VS Code docs:
@@ -378,10 +377,10 @@ Reference: <https://code.visualstudio.com/docs/agents/reference/ai-settings>
 
 Ask the assistant:
 
-> "What are the agent roles in this project, and what does
+> "What capabilities are available in this project, and what does
 > `@task-challenge` do?"
 
-If it lists all roles (`task-single-plan`, `task-multi-build`, `task-general`, `task-explore`, `task-librarian`, `task-multimodal-looker`, `task-judge`, `task-clarify`, `task-challenge`, `task-checkpoint`, `task-quick-verify`, `task-debug`, `task-strategy`, `task-yugong`, `job-plan`, `job-build`, `job-verify`, `job-debug`, `job-align`, `job-review`, `job-security-review`, `job-debug-deep`) and describes `task-challenge` as a plan-critic / remonstrator role, the config is loaded.
+If it lists the complete capability set, including `job-spiral-up`, and describes `task-challenge` as a plan critic, the config is loaded.
 
 For **Cursor**, **Claude Code**, and **VS Code + Copilot**, also test native dispatch:
 
@@ -389,24 +388,24 @@ For **Cursor**, **Claude Code**, and **VS Code + Copilot**, also test native dis
 > `foo()` is called in this repo, and find the official API docs for
 > `bar`."
 
-If two subagent bubbles appear side by side and complete independently, native subagent orchestration is working. In opencode, project roles load as skills and execute sequentially in the parent context; test each role separately instead.
+If two subagent bubbles appear side by side and complete independently, native subagent orchestration is working. In opencode, project capabilities load via the `skill` tool and execute sequentially in the parent context; test each capability separately instead.
 
 ## Updating the config
 
-`AGENTS.md` and `skills/<role>.md` are authoritative:
+`AGENTS.md` and `skills/<slug>.md` are authoritative:
 
-1. **Role behavior / discipline / role card body** → edit `skills/<role>.md` (or the shared rules in `AGENTS.md` section 3). Symlinks under `.claude/agents/`, `.cursor/agents/`, `.opencode/skills/*/SKILL.md`, and `CLAUDE.md` follow automatically.
-2. **Role's tools, model, handoff targets, or subagent list** → edit the frontmatter block at the top of `skills/<role>.md`. All native surfaces read the frontmatter through the symlinks.
-3. **Add or remove a role** → update `AGENTS.md` section 3.0 routing table and section 4 role cards; add/remove `skills/<role>.md`; create/delete the matching projections under `.claude/agents/`, `.cursor/agents/`, and `.opencode/skills/`.
+1. **Capability behavior / discipline / index entry** → edit `skills/<slug>.md` (or the shared rules in `AGENTS.md` section 3). Symlinks under `.claude/agents/`, `.cursor/agents/`, `.opencode/skills/*/SKILL.md`, and `CLAUDE.md` follow automatically.
+2. **Capability tools, model, handoff targets, or subagent list** → edit the frontmatter block at the top of `skills/<slug>.md`. All native surfaces read the frontmatter through the symlinks.
+3. **Add or remove a capability** → update `AGENTS.md` section 3.0 routing table and section 4 capability index; add/remove `skills/<slug>.md`; create/delete the matching projections under `.claude/agents/`, `.cursor/agents/`, and `.opencode/skills/`.
 4. `.cursor/rules/agents.mdc` references `@AGENTS.md`; only edit it if you change its own pointer section.
 
-## The Roles
+## Skills and Workflows
 
-Full behavior contract for each role lives in [`skills/<role>.md`](skills/). Deep design walkthrough (purpose, when to enter, methodologies, hard rules, handoffs, and three end-to-end scenarios) lives in [`INTRODUCTION.md`](INTRODUCTION.md) Part 2 and Part 3.
+Full behavior contract for each capability lives in [`skills/<slug>.md`](skills/). Deep design walkthrough (purpose, when to enter, methodologies, hard rules, handoffs, and three end-to-end scenarios) lives in [`INTRODUCTION.md`](INTRODUCTION.md) Part 2 and Part 3.
 
 **Atomic skills** (`task-*`):
 
-| Role | One-line purpose |
+| Skill | One-line purpose |
 |---|---|
 | [`task-clarify`](skills/task-clarify.md) | Critique the user's request itself. Recommend one clarifying question. |
 | [`task-single-plan`](skills/task-single-plan.md) | Read-only planner. Produce numbered atomic steps or a spec/PRD. |
@@ -435,6 +434,7 @@ Full behavior contract for each role lives in [`skills/<role>.md`](skills/). Dee
 | [`job-review`](skills/job-review.md) | Pre-completion review: challenge → judge → sweep. |
 | [`job-security-review`](skills/job-security-review.md) | End-to-end security audit chain (locate → judge + librarian → optional debug). |
 | [`job-debug-deep`](skills/job-debug-deep.md) | Six-phase hard-bug diagnosis end-to-end. |
+| [`job-spiral-up`](skills/job-spiral-up.md) | Single-session autonomous convergence for "loop until done", "keep going until complete", and equivalent requests; execution remains bounded. |
 
 ## License
 

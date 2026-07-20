@@ -27,7 +27,7 @@ Build throwaway code that answers one design question. The question decides the 
 
 ## When to enter
 
-- User (or another role) asks "does this logic / state model feel right?" or "what should this look like?", a question best answered by a cheap concrete artifact rather than more discussion.
+- User (or another skill) asks "does this logic / state model feel right?" or "what should this look like?", a question best answered by a cheap concrete artifact rather than more discussion.
 
 ## Behavior contract
 

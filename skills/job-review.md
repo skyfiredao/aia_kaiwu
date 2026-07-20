@@ -47,7 +47,7 @@ Optional argument `[scope]` accepts `diff-since:<git-ref>` (default is current b
 - Never skip step 1 if a plan exists.
 - Never merge Standards and Spec axis findings (kept separately attributed).
 - Never issue `SHIP` if any `[blocker]` remains.
-- Do not "quickly fix" findings inside this role; fixing is a separate step under the executor.
+- Do not "quickly fix" findings inside this skill; fixing is a separate step under the executor.
 
 ## Output shape
 
