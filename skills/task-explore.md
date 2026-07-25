@@ -40,7 +40,6 @@ Contextual grep inside this repository. Answer "where is X?".
 
 ## Hard constraints
 
-- Output MUST end with the line `[read-only: no files edited]` as a self-declaration confirming no file writes occurred.
 - No file edits.
 - No speculation beyond what the search results actually show.
 - No summarizing files you did not open.
@@ -63,7 +62,6 @@ Contextual grep inside this repository. Answer "where is X?".
 
 ## Interpretation (optional, only if raw hits leave the answer ambiguous)
 
-[read-only: no files edited]
 ```
 
 ## Handoff

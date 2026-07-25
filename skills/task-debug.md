@@ -43,7 +43,6 @@ Diagnose hard bugs and performance regressions through a six-phase evidence-firs
 
 ## Hard constraints
 
-- Output MUST end with the line `[read-only: no files edited]` as a self-declaration confirming no file writes occurred.
 - No file edits. Writable workflows or executors apply the instrumentation, regression test, and fix.
 - Every proposed debug note and log line must redact secrets, API tokens, credentials, private keys, and PII with `<redacted:kind>` placeholders.
 - No jumping to hypotheses without a red-capable loop.
@@ -73,7 +72,6 @@ Diagnose hard bugs and performance regressions through a six-phase evidence-firs
 ## Phase 6 verification
 <executor evidence checklist> + post-mortem "what would have prevented this"
 
-[read-only: no files edited]
 ```
 
 ## Handoff

@@ -464,6 +464,22 @@ Skills that gather information without editing.
 - **Handoff**: Whichever skill uses the extracted info.
 - **Not for**: Text-only inputs.
 
+#### `task-repo-analyze`
+
+- **Purpose**: Analyze a repository's structure, conventions, tooling, and CI configuration. Produce a structured report that downstream skills can reference.
+- **When to enter**: First time working in an unfamiliar repository, user asks "what does this repo do?", a workflow needs repo context and no existing analysis exists under `spec/repo-analyze/`.
+- **Hard rule**: Never scan without user confirmation (token-intensive). Check `spec/repo-analyze/` for existing analysis before offering to re-scan. Write only to `spec/repo-analyze/`, never modify source code. Do not fabricate information not observed in actual files.
+- **Handoff**: `task-single-plan` (plan work with repo context) or any executor.
+- **Not for**: Repos the user already knows well and can describe the conventions for. The skill's value is in unfamiliar territory.
+
+#### `task-doc-write`
+
+- **Purpose**: Write professional documentation from code and context. Four modes (api, architecture, guide, readme) with two distinct writing styles (professional for technical reference, accessible for README and introductions).
+- **When to enter**: User asks to write documentation, README, API reference, design doc, ADR, user guide, or tutorial.
+- **Hard rule**: Never invent API signatures or behaviors not observed in actual source. Never mix styles within one document. Never leave placeholder text in output. Document the current state, not aspirational future state.
+- **Handoff**: `task-judge` (review the document) or user (direct delivery).
+- **Not for**: Repairing drift in existing documentation (use `job-align`). Writing internal specs or plans (use `task-single-plan`).
+
 ### 2.4 Review and Diagnosis
 
 Skills that inspect work for defects, at three different points in time.
@@ -557,6 +573,16 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 - **Dispatch rule**: Read-only. Standards and Spec axes kept separately attributed and never merged. No `SHIP` verdict if any `[blocker]` remains. Do not "quickly fix" findings inside this workflow.
 - **Handoff**: `task-multi-build` or `task-yugong` to apply the `[blocker]` and `[should-fix]` items.
 - **Not for**: In-progress checks (`task-checkpoint` runs during execution; this runs after).
+
+#### `job-pr-maintain`
+
+- **Purpose**: Maintain an open pull request through its review lifecycle. Read review comments from GitHub, evaluate their technical validity, apply warranted fixes, update the PR description, and reply to review threads.
+- **When to enter**: User asks to address PR review comments, update a PR description, or respond to PR feedback.
+- **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.2
+- **Boundary**: This workflow owns GitHub API interactions (read comments, update description, reply to threads). It does not own local git operations (diff, commit, branch, push), which remain under AGENTS.md section 3.8 and the executing skill's responsibility.
+- **Dispatch rule**: GitHub write operations (update description, post replies) require explicit user authorization. Without authorization, the workflow performs read and analysis only and presents proposed actions as output. Never push code from this workflow; pushing is an executor action under AGENTS.md 3.6.
+- **Handoff**: `job-review` (optional, before pushing fixes). User (to authorize GitHub writes and push).
+- **Not for**: Creating new PRs from scratch (that is an executor action with push + pr-open authorization). Pre-completion code review without a PR (use `job-review`).
 
 #### `job-security-review`
 

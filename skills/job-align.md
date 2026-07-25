@@ -46,7 +46,6 @@ Bring documentation back into alignment with actual code implementation after it
 
 ## Dispatch rules
 
-- Output MUST end with the line `[read-only: no files edited]` as a self-declaration confirming the workflow itself made no file writes.
 - No file edits inside this workflow. Writable executors persist the approved report and apply documentation changes.
 - Never edit spec/PRD-type intent documents without explicit user OK; those may represent design that code should follow, not the reverse.
 - Never use bulk text diff to apply changes; go item-by-item to preserve semantics.
@@ -80,7 +79,6 @@ Bring documentation back into alignment with actual code implementation after it
 ## Post-alignment check (from task-judge)
 <residual drift, if any>
 
-[read-only: no files edited]
 ```
 
 ## Handoff

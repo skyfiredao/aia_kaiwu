@@ -7,10 +7,10 @@ agents: [task-challenge, task-judge, task-explore]
 handoffs:
   - agent: task-multi-build
     label: "Apply the fixes (task-multi-build)"
-    prompt: "Read the persisted pre-completion review report path provided by the parent. Apply its [blocker] and [should-fix] items. Skip [nit] items unless the user asks."
+    prompt: "Read the persisted pre-completion review report path provided by the parent. Apply its [blocker] and [should-fix] items. Skip [nice-to-have] items unless the user asks."
   - agent: task-yugong
     label: "Apply the fixes (task-yugong)"
-    prompt: "Read the persisted pre-completion review report path provided by the parent. Apply its [blocker] and [should-fix] items as one scoped task. Skip [nit] items unless the user asks."
+    prompt: "Read the persisted pre-completion review report path provided by the parent. Apply its [blocker] and [should-fix] items as one scoped task. Skip [nice-to-have] items unless the user asks."
 ---
 
 # job-review
@@ -37,12 +37,11 @@ Optional argument `[scope]` accepts `diff-since:<git-ref>` (default is current b
    - Standards axis: code follows repo's coding standards + Fowler smell baseline.
    - Spec axis: code matches what the originating issue/PRD/plan asked for.
 3. **`task-explore`** scans the diff for unresolved flakiness signatures, unreverted debug scaffolding, silent catch blocks, `sleep()` covering races, disabled tests, `TODO`, `FIXME`, `XXX`, `HACK`, unattributed `console.log`, `[DEBUG-` remnants, commented-out code, and dead imports.
-4. **Aggregate** into severity buckets: `[blocker]` / `[should-fix]` / `[nit]`. Preserve source attribution.
+4. **Aggregate** into severity buckets: `[blocker]` / `[should-fix]` / `[nice-to-have]`. Preserve source attribution.
 5. If fixes are required, ask the parent or a writable workflow to persist the report under `spec/review/<sha_short>.md`, then include that path in the executor handoff.
 
 ## Dispatch rules
 
-- Output MUST end with the line `[read-only: no files edited]` as a self-declaration confirming no file writes occurred during the review.
 - No file edits.
 - Never skip step 1 if a plan exists.
 - Never merge Standards and Spec axis findings (kept separately attributed).
@@ -75,13 +74,12 @@ Optional argument `[scope]` accepts `diff-since:<git-ref>` (default is current b
 ### [should-fix]
 - <path:line>, <finding>
 
-### [nit]
+### [nice-to-have]
 - <path:line>, <finding>
 
 ## Ship verdict
 <SHIP | FIX-THEN-SHIP | DO-NOT-SHIP + reasoning>
 
-[read-only: no files edited]
 ```
 
 ## Handoff

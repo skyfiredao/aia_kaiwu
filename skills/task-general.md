@@ -64,7 +64,6 @@ Coordinate multi-step work that mixes research and execution across several unre
 ## Aggregated conclusion
 <one paragraph>
 
-[read-only: no files edited]
 ```
 
 ## Handoff

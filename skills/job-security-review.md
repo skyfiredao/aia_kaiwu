@@ -7,10 +7,10 @@ agents: [task-explore, task-judge, task-librarian, task-debug]
 handoffs:
   - agent: task-multi-build
     label: "Apply the fixes (task-multi-build)"
-    prompt: "Read the persisted security audit report path provided by the parent. Apply its [blocker] and [should-fix] items. Skip [nit] items unless the user asks."
+    prompt: "Read the persisted security audit report path provided by the parent. Apply its [blocker] and [should-fix] items. Skip [nice-to-have] items unless the user asks."
   - agent: task-yugong
     label: "Apply the fixes (task-yugong)"
-    prompt: "Read the persisted security audit report path provided by the parent. Apply its [blocker] and [should-fix] items as one scoped task. Skip [nit] items unless the user asks."
+    prompt: "Read the persisted security audit report path provided by the parent. Apply its [blocker] and [should-fix] items as one scoped task. Skip [nice-to-have] items unless the user asks."
 ---
 
 # job-security-review
@@ -35,12 +35,11 @@ Optional argument `[scope]` accepts `whole` (default), `diff-since:<git-ref>`, o
    - `task-judge`: Spec axis narrowed to OWASP Top 10 and the repo's security requirements; Standards axis restricted to security-relevant Fowler smells (unlabeled catches, primitive obsession on secrets, message chains hiding auth checks). Adversarial posture.
    - `task-librarian`: primary-source-only research on current best practice for any library/algorithm the code uses (bcrypt cost factor, JWT library recommendations, SSL/TLS config, framework auth idioms).
 3. **Optional escalation to `task-debug`**: only when a specific finding's exact exploit path is unclear. Not on every finding.
-4. **Aggregate** into severity buckets: `[blocker]` / `[should-fix]` / `[nit]`. Preserve source attribution; do not re-rank across sub-agents.
+4. **Aggregate** into severity buckets: `[blocker]` / `[should-fix]` / `[nice-to-have]`. Preserve source attribution; do not re-rank across sub-agents.
 5. If fixes are required, ask the parent or a writable workflow to persist the audit under `spec/security/<sha_short>.md`, then include that path in the executor handoff.
 
 ## Dispatch rules
 
-- Output MUST end with the line `[read-only: no files edited]` as a self-declaration confirming no file writes occurred during the audit.
 - No file edits.
 - Never skip step 1 (locate); audit without location is theatre.
 - Never run `task-debug` on every finding (loop discipline).
@@ -64,7 +63,7 @@ Optional argument `[scope]` accepts `whole` (default), `diff-since:<git-ref>`, o
 ### [should-fix]
 - <same shape>
 
-### [nit]
+### [nice-to-have]
 - <same shape>
 
 ## External best-practice notes (from task-librarian)
@@ -76,7 +75,6 @@ Optional argument `[scope]` accepts `whole` (default), `diff-since:<git-ref>`, o
 ## Verdict
 <SHIP | FIX-THEN-SHIP | DO-NOT-SHIP + reasoning>
 
-[read-only: no files edited]
 ```
 
 ## Handoff

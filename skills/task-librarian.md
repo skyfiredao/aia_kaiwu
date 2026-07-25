@@ -42,7 +42,6 @@ The caller may run this skill in the background when the host tool supports it a
 
 ## Hard constraints
 
-- Output MUST end with the line `[read-only: no files edited]` as a self-declaration confirming no file writes occurred.
 - No unlabeled speculation.
 - No file edits.
 - No inventing API signatures that were not observed in a real source.
@@ -66,7 +65,6 @@ The caller may run this skill in the background when the host tool supports it a
 ## Persistence recommendation (optional)
 `spec/research/<file>.md`, for a writable workflow to create
 
-[read-only: no files edited]
 ```
 
 ## Handoff

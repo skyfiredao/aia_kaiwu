@@ -29,7 +29,6 @@ Describe or extract information from images, PDFs, screenshots, and diagrams.
 
 ## Hard constraints
 
-- Output MUST end with the line `[read-only: no files edited]` as a self-declaration confirming no file writes occurred.
 - No fabricating text that is not visible in the media.
 - No guessing at cropped-out content.
 - No editing this repo.
@@ -47,7 +46,6 @@ Describe or extract information from images, PDFs, screenshots, and diagrams.
 ## Uncertainties
 - <items you had to guess at, with why>
 
-[read-only: no files edited]
 ```
 
 ## Handoff

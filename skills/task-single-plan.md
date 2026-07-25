@@ -51,7 +51,7 @@ Before writing the plan, write down the irreducible constraints the solution mus
 
 ## Hard constraints
 
-- Output MUST end with the line `[read-only: no files edited]` as a self-declaration confirming no file writes occurred. The plan itself is chat output; `job-plan` persists it only after user approval.
+- The plan itself is chat output; `job-plan` persists it only after user approval.
 - No file edits.
 - No shell commands that mutate state.
 - No partial implementation "to prove the plan".
@@ -107,7 +107,6 @@ If any artifact above is marked `yes`, emit the corresponding section below the 
 ### How to use it (usage example / CLI / API call)
 ### Constraints and limitations
 
-[read-only: no files edited]
 ```
 
 ## Handoff

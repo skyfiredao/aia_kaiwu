@@ -35,7 +35,7 @@ Route a user request from ambiguity to approved plan artifacts persisted under `
    - `Artifacts to persist` block: marks `design.md`, `guide.md`, `README.md` as `yes`/`no` based on plan characteristics (architectural / ops-affecting / user-facing)
    - Emit the corresponding artifact section for every `yes` mark, using the templates in `skills/task-single-plan.md`
 4. **`task-challenge`**: Adversarial review of the plan and any emitted artifact sections. Flag drifted, merged, missing steps.
-5. Read `task-challenge`'s **verdict** field (values: `approve` / `needs-revision` / `reject`). If `needs-revision` or `reject` → revise (return to step 3). If `approve` → proceed. (The per-step `[blocker]` / `[should-fix]` / `[nit]` labels are severity annotations; the verdict is the gate.)
+5. Read `task-challenge`'s **verdict** field (values: `approve` / `needs-revision` / `reject`). If `needs-revision` or `reject` → revise (return to step 3). If `approve` → proceed. (The per-step `[blocker]` / `[should-fix]` / `[nice-to-have]` labels are severity annotations; the verdict is the gate.)
 6. **gate: user approves the plan artifacts.** Show the user the `Artifacts to persist` list; user can add or remove any of design.md / guide.md / README.md from the write set. Do not proceed to persistence without explicit user OK.
 7. Persist the approved artifacts directly (job-plan writes these files itself; no executor dispatch):
    - Derive `<slug>` from the plan title (kebab-case, ≤ 40 chars; append `-N` on collision with existing `spec/<slug>/` directories)
@@ -89,7 +89,7 @@ Route a user request from ambiguity to approved plan artifacts persisted under `
 <per template>
 
 ## Adversarial review (from task-challenge)
-### [blocker] / [should-fix] / [nit]
+### [blocker] / [should-fix] / [nice-to-have]
 - <per-step findings>
 
 ## Approval status

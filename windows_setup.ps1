@@ -35,3 +35,5 @@ Get-ChildItem -LiteralPath (Join-Path $DST "skills") -Filter *.md | ForEach-Obje
   New-Item -ItemType Directory -Force -Path $slugDir | Out-Null
   Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $slugDir "SKILL.md") -Force
 }
+
+Write-Host "aia_kaiwu setup complete: $DST" -ForegroundColor Green

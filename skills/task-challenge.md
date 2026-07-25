@@ -46,7 +46,6 @@ Read the plan as a hostile junior engineer would execute it: assume every step w
 
 ## Hard constraints
 
-- Output MUST end with the line `[read-only: no files edited]` as a self-declaration confirming no file writes occurred.
 - No editing the plan yourself; return findings only.
 - No polite hedging that hides a real defect.
 - No file edits.
@@ -72,7 +71,6 @@ Read the plan as a hostile junior engineer would execute it: assume every step w
 1. …
 2. …
 
-[read-only: no files edited]
 ```
 
 ## Handoff

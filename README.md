@@ -48,12 +48,15 @@ The full design walkthrough is in [`INTRODUCTION.md`](INTRODUCTION.md), under "D
 │   ├── task-debug.md
 │   ├── task-strategy.md
 │   ├── task-yugong.md
+│   ├── task-repo-analyze.md
+│   ├── task-doc-write.md
 │   ├── job-plan.md
 │   ├── job-build.md
 │   ├── job-verify.md
 │   ├── job-debug.md
 │   ├── job-align.md
 │   ├── job-review.md
+│   ├── job-pr-maintain.md
 │   ├── job-security-review.md
 │   ├── job-debug-deep.md
 │   └── job-spiral-up.md
@@ -390,6 +393,8 @@ For **Cursor**, **Claude Code**, and **VS Code + Copilot**, also test native dis
 
 If two subagent bubbles appear side by side and complete independently, native subagent orchestration is working. In opencode, project capabilities load via the `skill` tool and execute sequentially in the parent context; test each capability separately instead.
 
+If the model skips skill loading, tell it: "Follow AGENTS.md workflow, load the skill file first."
+
 ## Updating the config
 
 `AGENTS.md` and `skills/<slug>.md` are authoritative:
@@ -419,6 +424,8 @@ Full behavior contract for each capability lives in [`skills/<slug>.md`](skills/
 | [`task-explore`](skills/task-explore.md) | Contextual grep in-repo. |
 | [`task-librarian`](skills/task-librarian.md) | External docs, OSS repos, first-party APIs; primary sources only. |
 | [`task-multimodal-looker`](skills/task-multimodal-looker.md) | Describe or extract from images, PDFs, diagrams. |
+| [`task-repo-analyze`](skills/task-repo-analyze.md) | Analyze repo structure, conventions, tooling, CI. Token-intensive; prompts user; persists to `spec/repo-analyze/`. |
+| [`task-doc-write`](skills/task-doc-write.md) | Write documentation in four modes (api, architecture, guide, readme) with professional or accessible style. |
 | [`task-judge`](skills/task-judge.md) | Two-axis audit (Standards + Spec, kept separate). |
 | [`task-debug`](skills/task-debug.md) | Read-only six-phase evidence-first hard-bug diagnosis loop. |
 
@@ -432,6 +439,7 @@ Full behavior contract for each capability lives in [`skills/<slug>.md`](skills/
 | [`job-debug`](skills/job-debug.md) | First-pass bug diagnosis; auto-escalates to `job-debug-deep` for hard bugs. |
 | [`job-align`](skills/job-align.md) | Bring documentation back into alignment with code. |
 | [`job-review`](skills/job-review.md) | Pre-completion review: challenge → judge → sweep. |
+| [`job-pr-maintain`](skills/job-pr-maintain.md) | PR review lifecycle: read GitHub comments → evaluate → fix → update description → reply. GitHub writes require authorization. |
 | [`job-security-review`](skills/job-security-review.md) | End-to-end security audit chain (locate → judge + librarian → optional debug). |
 | [`job-debug-deep`](skills/job-debug-deep.md) | Six-phase hard-bug diagnosis end-to-end. |
 | [`job-spiral-up`](skills/job-spiral-up.md) | Single-session autonomous convergence for "loop until done", "keep going until complete", and equivalent requests; execution remains bounded. |

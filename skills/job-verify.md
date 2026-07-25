@@ -38,7 +38,6 @@ Completed work goes to `job-review` for Standards + Spec review and the leftover
 
 ## Dispatch rules
 
-- Output MUST end with the line `[read-only: no files edited]` as a self-declaration confirming no file writes occurred during verification.
 - Never run a post-completion ship review here; use `job-review`.
 - Never edit files inside this workflow.
 
@@ -51,7 +50,6 @@ Completed work goes to `job-review` for Standards + Spec review and the leftover
 ## Verdict
 <continue | adjust plan | halt>
 
-[read-only: no files edited]
 ```
 
 ## Handoff

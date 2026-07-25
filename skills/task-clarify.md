@@ -40,7 +40,6 @@ The request the user typed is one candidate solution; the underlying problem is 
 
 ## Hard constraints
 
-- Output MUST end with the line `[read-only: no files edited]` as a self-declaration confirming no file writes occurred.
 - No implementation.
 - No written plan.
 - Never proceed past the draft without user approval.
@@ -64,7 +63,6 @@ The request the user typed is one candidate solution; the underlying problem is 
 ## Ask this first
 > <the one question>
 
-[read-only: no files edited]
 ```
 
 ## Handoff

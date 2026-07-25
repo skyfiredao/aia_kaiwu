@@ -48,12 +48,15 @@ English version: [README.md](README.md)。
 │   ├── task-debug.md
 │   ├── task-strategy.md
 │   ├── task-yugong.md
+│   ├── task-repo-analyze.md
+│   ├── task-doc-write.md
 │   ├── job-plan.md
 │   ├── job-build.md
 │   ├── job-verify.md
 │   ├── job-debug.md
 │   ├── job-align.md
 │   ├── job-review.md
+│   ├── job-pr-maintain.md
 │   ├── job-security-review.md
 │   ├── job-debug-deep.md
 │   └── job-spiral-up.md
@@ -387,6 +390,8 @@ Reference: <https://code.visualstudio.com/docs/agents/reference/ai-settings>
 
 如果聊天里出现两个并排的 subagent 气泡各自独立完成，说明原生 subagent 编排生效。opencode 的项目能力通过 `skill` 工具载入，在父上下文顺序执行，应分别测试每个能力。
 
+如果模型跳过了技能加载，告诉它："按 AGENTS.md 流程执行，先加载 skill 文件。"
+
 ## 更新配置
 
 `AGENTS.md` 和 `skills/<slug>.md` 是权威：
@@ -416,6 +421,8 @@ Reference: <https://code.visualstudio.com/docs/agents/reference/ai-settings>
 | [`task-explore`](skills/task-explore.md) | 本仓库内的上下文 grep。 |
 | [`task-librarian`](skills/task-librarian.md) | 外部文档、OSS repo、第一方 API；只用第一手来源。 |
 | [`task-multimodal-looker`](skills/task-multimodal-looker.md) | 从图片、PDF、图表里描述或抽取信息。 |
+| [`task-repo-analyze`](skills/task-repo-analyze.md) | 分析仓库结构、约定、工具链、CI。消耗 token 较多，会先提示用户；输出持久化到 `spec/repo-analyze/`。 |
+| [`task-doc-write`](skills/task-doc-write.md) | 四种模式（api、architecture、guide、readme）撰写专业文档，区分专业和科普两种风格。 |
 | [`task-judge`](skills/task-judge.md) | 双轴审查（Standards + Spec，两轴独立不合并）。 |
 | [`task-debug`](skills/task-debug.md) | 只读六阶段证据优先硬 bug 诊断回路。 |
 
@@ -429,6 +436,7 @@ Reference: <https://code.visualstudio.com/docs/agents/reference/ai-settings>
 | [`job-debug`](skills/job-debug.md) | 首轮 bug 诊断；硬 bug 自动升级到 `job-debug-deep`。 |
 | [`job-align`](skills/job-align.md) | 文档与代码对齐。 |
 | [`job-review`](skills/job-review.md) | 完成前审查：challenge → judge → sweep。 |
+| [`job-pr-maintain`](skills/job-pr-maintain.md) | PR 评审生命周期：读 GitHub 评论 → 评估 → 修复 → 更新描述 → 回复。GitHub 写操作需授权。 |
 | [`job-security-review`](skills/job-security-review.md) | 端到端安全审计链（locate → judge + librarian → 可选 debug）。 |
 | [`job-debug-deep`](skills/job-debug-deep.md) | 端到端六阶段硬 bug 诊断。 |
 | [`job-spiral-up`](skills/job-spiral-up.md) | 响应“循环直到结束”“一直到结束”“不要停，直到完成”“无限循环”等表达；开始时一次预授权，执行始终有界。 |

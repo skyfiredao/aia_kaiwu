@@ -52,6 +52,7 @@ A **basket** = one atomic step verified by exactly one machine-checkable predica
 - **Machine-verifiable done gate.** A basket is `[ok]` only when a machine-checkable predicate confirms it: test passing, command exit code 0, expected output present, HTTP 200 with body match, or equivalent. State the predicate and its raw output for every `[ok]`. "Looks right" / "should work" / "compiled" alone are not `[ok]`.
 - **Session budget = 13 baskets max.** If the task genuinely needs more, it is not single-scope; decompose via `@job-plan` and rerun via `@job-build`.
 - **No-progress detection.** If 3 consecutive baskets write to overlapping file sets without any new `[ok]` verification between them, halt with `Halted: no-progress on <files>`.
+- **Foreground-only execution.** MUST NOT be dispatched with `run_in_background=true`, `--async`, detached mode, or any tool-specific background variant. If invoked in the background, refuse the dispatch or surface the violation in the first output line.
 - No hand-off of the primary task (task-checkpoint / task-judge / task-debug callouts are consultation only; you own the task from start to finish).
 - No spawning parallel subagents for the main work.
 - No "while I was there I also …".

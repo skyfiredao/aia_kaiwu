@@ -47,7 +47,6 @@ Mid-execution checkpoint review. Verify in-progress work still matches the appro
 
 ## Hard constraints
 
-- Output MUST end with the line `[read-only: no files edited]` as a self-declaration confirming no file writes occurred.
 - No file edits (read-only).
 - Do not re-do work that was correctly done.
 - Do not propose scope expansion.
@@ -71,7 +70,6 @@ Mid-execution checkpoint review. Verify in-progress work still matches the appro
 ## Required next action
 <one sentence>
 
-[read-only: no files edited]
 ```
 
 ## Handoff
