@@ -2,7 +2,7 @@
 
 一套工作流化的代理系统，在多个现代 AI 编码助手（opencode、Cursor、Claude Code、VS Code + Copilot）里跑同一套工程技能与工作流。
 
-在宿主工具**有**原生 subagent 编排能力的地方，能力装成**真正的 subagent**；[`AGENTS.md`](AGENTS.md) 第 5.1 节里的手动多 agent 编排作为可移植的兜底。
+在宿主工具**有**原生 subagent 编排能力的地方，能力装成**真正的 subagent**。
 
 English version: [README.md](README.md)。
 
@@ -10,17 +10,17 @@ English version: [README.md](README.md)。
 
 "aia_kaiwu" 取名自宋应星 1637 年的[《天工开物》](https://zh.wikipedia.org/wiki/%E5%A4%A9%E5%B7%A5%E5%BC%80%E7%89%A9)。这部书系统记录了当时的全部工艺：农、织、冶、陶、械。每一门都是独立的工艺门类，有自己的师承与做法。
 
-每个能力一门手艺，行为契约写在 `skills/<slug>.md`。能力 slug 分两个前缀：`task-*` 是原子技能，`job-*` 是多步工作流。
+每个能力一门手艺，行为契约写在 `skills/<slug>/SKILL.md`。能力 slug 分两个前缀：`task-*` 是原子技能，`job-*` 是多步工作流。
 
 ## 设计总览
 
 三层架构（非扁平多 agent 列表）：
 
 - **Layer 1，路由**（`AGENTS.md`）：读用户每条消息；按第 3.0 节的语义分类表分发到对应工作流或技能。没有关键字表、没有 ask-before-dispatch；不明确的意图路由到 `@task-clarify`。
-- **Layer 2，工作流**（`skills/job-*.md`）：把原子技能串成端到端业务流，负责交互策略（审批门或自主预授权）和状态交接，并可持久化已批准的编排产物。
+- **Layer 2，工作流**（`skills/job-*.md`）：把原子技能串成端到端业务流，负责交互策略（审批门或全自动）和状态交接，并可持久化已批准的编排产物。
 - **Layer 3，Task**（`skills/task-*.md`）：原子操作的具体行为契约。每个 task 做好一件事。
 
-**对便宜模型友好。** Router 是语义分类表；工作流是编号分发链；执行类技能使用机器可判 done predicate；只读技能返回结构化判词；预算有界（`task-yugong` 单会话上限 13 basket）。
+**对便宜模型友好。** Router 是语义分类表；工作流是编号分发链；执行类技能使用机器可判 done predicate；分析类技能返回结构化判词；预算有界（`task-yugong` 单会话上限 13 basket）。
 
 完整设计走查见 [`INTRODUCTION_zh.md`](INTRODUCTION_zh.md) 的“设计总览：三层架构”。
 
@@ -33,45 +33,44 @@ English version: [README.md](README.md)。
 ├── README.md                              ← 英文版说明
 ├── README_zh.md                           ← 本文件
 ├── windows_setup.ps1                      ← Windows 工作区安装脚本
-├── skills/                                ← 单一权威能力定义
-│   ├── task-single-plan.md
-│   ├── task-multi-build.md
-│   ├── task-general.md
-│   ├── task-explore.md
-│   ├── task-librarian.md
-│   ├── task-multimodal-looker.md
-│   ├── task-judge.md
-│   ├── task-clarify.md
-│   ├── task-challenge.md
-│   ├── task-checkpoint.md
-│   ├── task-quick-verify.md
-│   ├── task-debug.md
-│   ├── task-strategy.md
-│   ├── task-yugong.md
-│   ├── task-repo-analyze.md
-│   ├── task-doc-write.md
-│   ├── job-plan.md
-│   ├── job-build.md
-│   ├── job-verify.md
-│   ├── job-debug.md
-│   ├── job-align.md
-│   ├── job-review.md
-│   ├── job-pr-maintain.md
-│   ├── job-security-review.md
-│   ├── job-debug-deep.md
-│   └── job-spiral-up.md
+├── skills/                                ← 每个目录含 SKILL.md
+│   ├── task-single-plan/
+│   ├── task-multi-build/
+│   ├── task-general/
+│   ├── task-explore/
+│   ├── task-librarian/
+│   ├── task-multimodal-looker/
+│   ├── task-judge/
+│   ├── task-clarify/
+│   ├── task-challenge/
+│   ├── task-checkpoint/
+│   ├── task-quick-verify/
+│   ├── task-debug/
+│   ├── task-strategy/
+│   ├── task-yugong/
+│   ├── task-repo-analyze/
+│   ├── task-doc-write/
+│   ├── job-plan/
+│   ├── job-build/
+│   ├── job-verify/
+│   ├── job-debug/
+│   ├── job-align/
+│   ├── job-review/
+│   ├── job-pr-maintain/
+│   ├── job-security-review/
+│   ├── job-debug-deep/
+│   └── job-spiral-up/
 ├── .opencode/
-│   └── skills/
-│       └── <slug>/SKILL.md                ← 软链接 → ../../../skills/<slug>.md
+│   └── skills/                            ← 软链接 → ../../skills/<slug>/
 ├── .claude/
-│   └── agents/                            ← 软链接 → ../../skills/*.md
+│   └── agents/                            ← 软链接 → ../../skills/<slug>/
 └── .cursor/
     ├── rules/
     │   └── agents.mdc                     ← rules 桥接（alwaysApply）
-    └── agents/                            ← 软链接 → ../../skills/*.md
+    └── agents/                            ← 软链接 → ../../skills/<slug>/
 ```
 
-改 `skills/<slug>.md` 或 `AGENTS.md`，`.claude/agents/`、`.cursor/agents/`、`.opencode/skills/*/SKILL.md`、`CLAUDE.md → AGENTS.md` 下的软链接会自动同步。
+改 `skills/<slug>/SKILL.md` 或 `AGENTS.md`，`.claude/agents/`、`.cursor/agents/`、`.opencode/skills/*/SKILL.md`、`CLAUDE.md → AGENTS.md` 下的软链接会自动同步。
 
 ## 安装
 
@@ -207,7 +206,7 @@ Cursor 原生把根目录的 `AGENTS.md` 作为 always-on 规则加载。
 | `.cursor/rules/agents.mdc` | 会话启动（`alwaysApply: true`） | 引用 `@AGENTS.md` 的桥接 |
 | `.cursor/agents/*.md` | agent 被调用时 | 所有能力对应的原生 subagent |
 
-每个 `.cursor/agents/<slug>.md` 是指向 `skills/<slug>.md` 的软链接。YAML frontmatter 带 `name`、`description`、`model`、`readonly`、`is_background`。
+每个 `.cursor/agents/<slug>/SKILL.md` 是指向 `skills/<slug>/SKILL.md` 的软链接。YAML frontmatter 带 `name`、`description`、`model`、`is_background`。
 
 ### 验证生效
 
@@ -248,7 +247,7 @@ Claude Code 把根目录的 `CLAUDE.md` 作为项目指令加载，同时也认 
 | `CLAUDE.md → AGENTS.md`（软链接） | 会话启动 | 项目指令 |
 | `.claude/agents/*.md` | agent 被调用时 | 所有能力对应的原生 subagent |
 
-每个 `.claude/agents/<slug>.md` 是指向 `skills/<slug>.md` 的软链接。YAML frontmatter 用 Claude Code 的 schema：`name`、`description`、可选`tools` 白名单、可选 `model`。
+每个 `.claude/agents/<slug>/SKILL.md` 是指向 `skills/<slug>/SKILL.md` 的软链接。YAML frontmatter 用 Claude Code 的 schema：`name`、`description`、可选`tools` 白名单、可选 `model`。
 
 ### 验证生效
 
@@ -332,7 +331,7 @@ handoffs:
     model: Claude Sonnet 4.5 (copilot)
 ---
 
-<粘贴 skills/<slug>.md 正文>
+<粘贴 skills/<slug>/SKILL.md 正文>
 ```
 
 **`agent`-in-`tools:` 坑。** VS Code 官方文档原文：
@@ -394,37 +393,37 @@ Reference: <https://code.visualstudio.com/docs/agents/reference/ai-settings>
 
 ## 更新配置
 
-`AGENTS.md` 和 `skills/<slug>.md` 是权威：
+`AGENTS.md` 和 `skills/<slug>/SKILL.md` 是权威：
 
-1. **改能力行为 / 纪律 / 索引条目** → 直接改 `skills/<slug>.md`（或改 `AGENTS.md` 第 3 节里的共享纪律）。`.claude/agents/`、`.cursor/agents/`、`.opencode/skills/*/SKILL.md`、`CLAUDE.md` 下的软链接会自动同步。
-2. **改能力的可用工具、model、handoff 目标、可调 subagent 白名单** → 改 `skills/<slug>.md` 顶端的 frontmatter。各家原生工具都通过软链接读同一份 frontmatter。
-3. **加或删一个能力** → 先改 `AGENTS.md` 第 3.0 节路由表和第 4 节能力索引；增删 `skills/<slug>.md`；在 `.claude/agents/`、`.cursor/agents/`、`.opencode/skills/` 里对应地增删投影。
+1. **改能力行为 / 纪律 / 索引条目** → 直接改 `skills/<slug>/SKILL.md`（或改 `AGENTS.md` 第 3 节里的共享纪律）。`.claude/agents/`、`.cursor/agents/`、`.opencode/skills/*/SKILL.md`、`CLAUDE.md` 下的软链接会自动同步。
+2. **改能力的可用工具、model、handoff 目标、可调 subagent 白名单** → 改 `skills/<slug>/SKILL.md` 顶端的 frontmatter。各家原生工具都通过软链接读同一份 frontmatter。
+3. **加或删一个能力** → 先改 `AGENTS.md` 第 3.0 节路由表和第 4 节能力索引；增删 `skills/<slug>/SKILL.md`；在 `.claude/agents/`、`.cursor/agents/`、`.opencode/skills/` 里对应地增删投影。
 4. `.cursor/rules/agents.mdc` 里是 `@AGENTS.md` 引用，只有当你要改它自己的指路片段时才需要动它。
 
 ## 技能与工作流
 
-每个能力的完整行为契约在 [`skills/<slug>.md`](skills/)。设计深度导览（目的、进入条件、方法论、硬约束、handoff、以及三个端到端场景）在 [`INTRODUCTION_zh.md`](INTRODUCTION_zh.md) 第二部分和第三部分。
+每个能力的完整行为契约在 [`skills/<slug>/SKILL.md`](skills/)。设计深度导览（目的、进入条件、方法论、硬约束、handoff、以及三个端到端场景）在 [`INTRODUCTION_zh.md`](INTRODUCTION_zh.md) 第二部分和第三部分。
 
 **原子技能**（`task-*`）：
 
 | 技能 | 一句话定位 |
 |---|---|
 | [`task-clarify`](skills/task-clarify.md) | 批判用户请求本身，推一个最有价值的澄清问题。 |
-| [`task-single-plan`](skills/task-single-plan.md) | 只读规划者。产出编号原子步骤或 spec/PRD。 |
+| [`task-single-plan`](skills/task-single-plan.md) | Planner。产出编号原子步骤或 spec/PRD。 |
 | [`task-challenge`](skills/task-challenge.md) | 对抗式审查一个写好的计划。 |
 | [`task-checkpoint`](skills/task-checkpoint.md) | 执行中检查点。`continue` / `adjust plan` / `halt`。 |
 | [`task-quick-verify`](skills/task-quick-verify.md) | 一次性原型回答一个设计问题。 |
 | [`task-strategy`](skills/task-strategy.md) | 多会话决策票据地图。每会话 1 张非 research 票。 |
 | [`task-multi-build`](skills/task-multi-build.md) | 多领域实施者，向专家委派。 |
 | [`task-yugong`](skills/task-yugong.md) | **默认**。单一 scope 任务，不委派，磨到验证通过。 |
-| [`task-general`](skills/task-general.md) | 无专家匹配时的只读混合任务协调器。 |
+| [`task-general`](skills/task-general.md) | 无专家匹配时的混合任务协调器。 |
 | [`task-explore`](skills/task-explore.md) | 本仓库内的上下文 grep。 |
 | [`task-librarian`](skills/task-librarian.md) | 外部文档、OSS repo、第一方 API；只用第一手来源。 |
 | [`task-multimodal-looker`](skills/task-multimodal-looker.md) | 从图片、PDF、图表里描述或抽取信息。 |
 | [`task-repo-analyze`](skills/task-repo-analyze.md) | 分析仓库结构、约定、工具链、CI。消耗 token 较多，会先提示用户；输出持久化到 `spec/repo-analyze/`。 |
 | [`task-doc-write`](skills/task-doc-write.md) | 四种模式（api、architecture、guide、readme）撰写专业文档，区分专业和科普两种风格。 |
 | [`task-judge`](skills/task-judge.md) | 双轴审查（Standards + Spec，两轴独立不合并）。 |
-| [`task-debug`](skills/task-debug.md) | 只读六阶段证据优先硬 bug 诊断回路。 |
+| [`task-debug`](skills/task-debug.md) | 六阶段证据优先硬 bug 诊断回路。 |
 
 **工作流**（`job-*`，串接原子技能）：
 
@@ -439,7 +438,7 @@ Reference: <https://code.visualstudio.com/docs/agents/reference/ai-settings>
 | [`job-pr-maintain`](skills/job-pr-maintain.md) | PR 评审生命周期：读 GitHub 评论 → 评估 → 修复 → 更新描述 → 回复。GitHub 写操作需授权。 |
 | [`job-security-review`](skills/job-security-review.md) | 端到端安全审计链（locate → judge + librarian → 可选 debug）。 |
 | [`job-debug-deep`](skills/job-debug-deep.md) | 端到端六阶段硬 bug 诊断。 |
-| [`job-spiral-up`](skills/job-spiral-up.md) | 响应“循环直到结束”“一直到结束”“不要停，直到完成”“无限循环”等表达；开始时一次预授权，执行始终有界。 |
+| [`job-spiral-up`](skills/job-spiral-up.md) | 响应"循环直到结束""一直到结束""不要停，直到完成""无限循环"等表达；单会话内自主跑到 `Done`。 |
 
 ## 许可证
 

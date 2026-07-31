@@ -2,7 +2,7 @@
 
 A workflow-oriented agent system that runs the same set of engineering skills and workflows across modern AI coding assistants (opencode, Cursor, Claude Code, VS Code + Copilot).
 
-Where the host tool has native subagent orchestration, capabilities load as **real subagents**; the manual multi-agent pattern in [`AGENTS.md`](AGENTS.md) section 5.1 acts as a portable fallback.
+Where the host tool has native subagent orchestration, capabilities load as **real subagents**.
 
 中文版说明：[README_zh.md](README_zh.md)。
 
@@ -10,14 +10,14 @@ Where the host tool has native subagent orchestration, capabilities load as **re
 
 "aia_kaiwu" takes its name from [*Tiangong Kaiwu*](https://en.wikipedia.org/wiki/Tiangong_Kaiwu), the 1637 encyclopedia by Song Yingxing. That book catalogued every craft and production technique of the era: agriculture, weaving, metallurgy, ceramics, weaponry. Each craft was a distinct discipline with its own masters and its own protocol.
 
-One capability per craft, each with a specific behavior contract in `skills/<slug>.md`. Capability slugs use two prefixes: `task-*` for atomic skills, `job-*` for multi-step workflows.
+One capability per craft, each with a specific behavior contract in `skills/<slug>/SKILL.md`. Capability slugs use two prefixes: `task-*` for atomic skills, `job-*` for multi-step workflows.
 
 ## Design overview
 
 Three-layer architecture (not a flat multi-agent list):
 
 - **Layer 1, Router** (`AGENTS.md`): reads every user message; classifies intent semantically per section 3.0's routing table and dispatches to the right workflow/skill. No keyword table, no ask-before-dispatch; ambiguous intent routes to `@task-clarify`.
-- **Layer 2, Workflow** (`skills/job-*.md`): multi-step chains that compose task skills, own interaction policy (approval gates or autonomous preauthorization) and state handoffs, and may persist approved orchestration artifacts.
+- **Layer 2, Workflow** (`skills/job-*.md`): multi-step chains that compose task skills, own interaction policy (approval gates or fully autonomous) and state handoffs, and may persist approved orchestration artifacts.
 - **Layer 3, Task** (`skills/task-*.md`): atomic operations with concrete behavior contracts. Each does one thing well.
 
 **Cheap-model friendly.** Router is a semantic classification table; workflows are numbered dispatch chains; execution tasks use machine-verifiable done predicates; read-only tasks return structured verdicts; budgets are bounded (`task-yugong` caps at 13 baskets).
@@ -33,45 +33,44 @@ The full design walkthrough is in [`INTRODUCTION.md`](INTRODUCTION.md), under "D
 ├── README.md                              ← this file
 ├── README_zh.md                           ← Chinese version
 ├── windows_setup.ps1                      ← Windows workspace setup script
-├── skills/                                ← canonical capability definitions
-│   ├── task-single-plan.md
-│   ├── task-multi-build.md
-│   ├── task-general.md
-│   ├── task-explore.md
-│   ├── task-librarian.md
-│   ├── task-multimodal-looker.md
-│   ├── task-judge.md
-│   ├── task-clarify.md
-│   ├── task-challenge.md
-│   ├── task-checkpoint.md
-│   ├── task-quick-verify.md
-│   ├── task-debug.md
-│   ├── task-strategy.md
-│   ├── task-yugong.md
-│   ├── task-repo-analyze.md
-│   ├── task-doc-write.md
-│   ├── job-plan.md
-│   ├── job-build.md
-│   ├── job-verify.md
-│   ├── job-debug.md
-│   ├── job-align.md
-│   ├── job-review.md
-│   ├── job-pr-maintain.md
-│   ├── job-security-review.md
-│   ├── job-debug-deep.md
-│   └── job-spiral-up.md
+├── skills/                                ← each contains SKILL.md
+│   ├── task-single-plan/
+│   ├── task-multi-build/
+│   ├── task-general/
+│   ├── task-explore/
+│   ├── task-librarian/
+│   ├── task-multimodal-looker/
+│   ├── task-judge/
+│   ├── task-clarify/
+│   ├── task-challenge/
+│   ├── task-checkpoint/
+│   ├── task-quick-verify/
+│   ├── task-debug/
+│   ├── task-strategy/
+│   ├── task-yugong/
+│   ├── task-repo-analyze/
+│   ├── task-doc-write/
+│   ├── job-plan/
+│   ├── job-build/
+│   ├── job-verify/
+│   ├── job-debug/
+│   ├── job-align/
+│   ├── job-review/
+│   ├── job-pr-maintain/
+│   ├── job-security-review/
+│   ├── job-debug-deep/
+│   └── job-spiral-up/
 ├── .opencode/
-│   └── skills/
-│       └── <slug>/SKILL.md                ← symlink → ../../../skills/<slug>.md
+│   └── skills/                            ← symlinks → ../../skills/<slug>/
 ├── .claude/
-│   └── agents/                            ← symlinks → ../../skills/*.md
+│   └── agents/                            ← symlinks → ../../skills/<slug>/
 └── .cursor/
     ├── rules/
     │   └── agents.mdc                     ← rules bridge (alwaysApply)
-    └── agents/                            ← symlinks → ../../skills/*.md
+    └── agents/                            ← symlinks → ../../skills/<slug>/
 ```
 
-Update `skills/<slug>.md` or `AGENTS.md`, and the symlinks under `.claude/agents/`, `.cursor/agents/`, `.opencode/skills/*/SKILL.md`, and `CLAUDE.md → AGENTS.md` follow automatically.
+Update `skills/<slug>/SKILL.md` or `AGENTS.md`, and the symlinks under `.claude/agents/`, `.cursor/agents/`, `.opencode/skills/*/SKILL.md`, and `CLAUDE.md → AGENTS.md` follow automatically.
 
 ## Installation
 
@@ -207,7 +206,7 @@ Cursor honors `AGENTS.md` at the workspace root natively as always-on rules.
 | `.cursor/rules/agents.mdc` | Session start (`alwaysApply: true`) | Bridge that references `@AGENTS.md` |
 | `.cursor/agents/*.md` | On agent invocation | Native subagents for all capabilities |
 
-Each `.cursor/agents/<slug>.md` is a symlink to `skills/<slug>.md`. YAML frontmatter carries `name`, `description`, `model`, `readonly`, and `is_background`.
+Each `.cursor/agents/<slug>/SKILL.md` is a symlink to `skills/<slug>/SKILL.md`. YAML frontmatter carries `name`, `description`, `model`, and `is_background`.
 
 ### Verify it works
 
@@ -248,7 +247,7 @@ Claude Code reads `CLAUDE.md` at the repo root as project instructions and also 
 | `CLAUDE.md → AGENTS.md` (symlink) | Session start | Project instructions |
 | `.claude/agents/*.md` | On agent invocation | Native subagents for all capabilities |
 
-Each `.claude/agents/<slug>.md` is a symlink to `skills/<slug>.md`. YAML frontmatter uses Claude Code's schema: `name`, `description`, optional `tools` whitelist, optional `model`.
+Each `.claude/agents/<slug>/SKILL.md` is a symlink to `skills/<slug>/SKILL.md`. YAML frontmatter uses Claude Code's schema: `name`, `description`, optional `tools` whitelist, optional `model`.
 
 ### Verify it works
 
@@ -332,7 +331,7 @@ handoffs:
     model: Claude Sonnet 4.5 (copilot)
 ---
 
-<paste the full contents of skills/<slug>.md body>
+<paste the full contents of skills/<slug>/SKILL.md body>
 ```
 
 **The `agent`-in-`tools:` gotcha.** Direct quote from the VS Code docs:
@@ -397,37 +396,37 @@ If the model skips skill loading, tell it: "Follow AGENTS.md workflow, load the 
 
 ## Updating the config
 
-`AGENTS.md` and `skills/<slug>.md` are authoritative:
+`AGENTS.md` and `skills/<slug>/SKILL.md` are authoritative:
 
-1. **Capability behavior / discipline / index entry** → edit `skills/<slug>.md` (or the shared rules in `AGENTS.md` section 3). Symlinks under `.claude/agents/`, `.cursor/agents/`, `.opencode/skills/*/SKILL.md`, and `CLAUDE.md` follow automatically.
-2. **Capability tools, model, handoff targets, or subagent list** → edit the frontmatter block at the top of `skills/<slug>.md`. All native surfaces read the frontmatter through the symlinks.
-3. **Add or remove a capability** → update `AGENTS.md` section 3.0 routing table and section 4 capability index; add/remove `skills/<slug>.md`; create/delete the matching projections under `.claude/agents/`, `.cursor/agents/`, and `.opencode/skills/`.
+1. **Capability behavior / discipline / index entry** → edit `skills/<slug>/SKILL.md` (or the shared rules in `AGENTS.md` section 3). Symlinks under `.claude/agents/`, `.cursor/agents/`, `.opencode/skills/*/SKILL.md`, and `CLAUDE.md` follow automatically.
+2. **Capability tools, model, handoff targets, or subagent list** → edit the frontmatter block at the top of `skills/<slug>/SKILL.md`. All native surfaces read the frontmatter through the symlinks.
+3. **Add or remove a capability** → update `AGENTS.md` section 3.0 routing table and section 4 capability index; add/remove `skills/<slug>/SKILL.md`; create/delete the matching projections under `.claude/agents/`, `.cursor/agents/`, and `.opencode/skills/`.
 4. `.cursor/rules/agents.mdc` references `@AGENTS.md`; only edit it if you change its own pointer section.
 
 ## Skills and Workflows
 
-Full behavior contract for each capability lives in [`skills/<slug>.md`](skills/). Deep design walkthrough (purpose, when to enter, methodologies, hard rules, handoffs, and three end-to-end scenarios) lives in [`INTRODUCTION.md`](INTRODUCTION.md) Part 2 and Part 3.
+Full behavior contract for each capability lives in [`skills/<slug>/SKILL.md`](skills/). Deep design walkthrough (purpose, when to enter, methodologies, hard rules, handoffs, and three end-to-end scenarios) lives in [`INTRODUCTION.md`](INTRODUCTION.md) Part 2 and Part 3.
 
 **Atomic skills** (`task-*`):
 
 | Skill | One-line purpose |
 |---|---|
 | [`task-clarify`](skills/task-clarify.md) | Critique the user's request itself. Recommend one clarifying question. |
-| [`task-single-plan`](skills/task-single-plan.md) | Read-only planner. Produce numbered atomic steps or a spec/PRD. |
+| [`task-single-plan`](skills/task-single-plan.md) | Planner. Produce numbered atomic steps or a spec/PRD. |
 | [`task-challenge`](skills/task-challenge.md) | Adversarial critique of a written plan. |
 | [`task-checkpoint`](skills/task-checkpoint.md) | Mid-execution checkpoint. `continue` / `adjust plan` / `halt`. |
 | [`task-quick-verify`](skills/task-quick-verify.md) | Throwaway prototype answering one design question. |
 | [`task-strategy`](skills/task-strategy.md) | Multi-session decision-ticket map. One non-research ticket per session. |
 | [`task-multi-build`](skills/task-multi-build.md) | Multi-domain implementer with delegation to specialists. |
 | [`task-yugong`](skills/task-yugong.md) | **Default.** Single-scope task, no delegation, grind until done. |
-| [`task-general`](skills/task-general.md) | Read-only coordinator for mixed work when no specialist fits. |
+| [`task-general`](skills/task-general.md) | Coordinator for mixed work when no specialist fits. |
 | [`task-explore`](skills/task-explore.md) | Contextual grep in-repo. |
 | [`task-librarian`](skills/task-librarian.md) | External docs, OSS repos, first-party APIs; primary sources only. |
 | [`task-multimodal-looker`](skills/task-multimodal-looker.md) | Describe or extract from images, PDFs, diagrams. |
 | [`task-repo-analyze`](skills/task-repo-analyze.md) | Analyze repo structure, conventions, tooling, CI. Token-intensive; prompts user; persists to `spec/repo-analyze/`. |
 | [`task-doc-write`](skills/task-doc-write.md) | Write documentation in four modes (api, architecture, guide, readme) with professional or accessible style. |
 | [`task-judge`](skills/task-judge.md) | Two-axis audit (Standards + Spec, kept separate). |
-| [`task-debug`](skills/task-debug.md) | Read-only six-phase evidence-first hard-bug diagnosis loop. |
+| [`task-debug`](skills/task-debug.md) | Six-phase evidence-first hard-bug diagnosis loop. |
 
 **Workflows** (`job-*`, chain atomic skills):
 

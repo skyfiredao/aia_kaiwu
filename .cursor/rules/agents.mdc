@@ -1,25 +1,25 @@
 ---
-description: Agent Config (always active). Delegates all operating rules to AGENTS.md at repo root.
+description: Agent Config (always active). Delegates to AGENTS.md.
 alwaysApply: true
 ---
 
 # Agent Config Bridge (Cursor)
 
-Load the full rules from @AGENTS.md and follow them as your operating instructions for every request in this workspace.
+Follow @AGENTS.md as operating instructions for every request.
 
 ## Capabilities
 
-Semantic routing lives in @AGENTS.md section 3.0; the full capability index lives in section 4. Behavior contracts live in `skills/<name>.md` and are mounted as native subagents at `.cursor/agents/<name>.md`.
+Semantic routing: @AGENTS.md section 3.0. Capability index: section 4. Skill contracts: `skills/<name>/SKILL.md`, mounted as native subagents at `.cursor/agents/<name>/SKILL.md`.
 
-Use `@name` for explicit capability selection in Cursor; it resolves to the native subagent under `.cursor/agents/`. When no explicit trigger is given, the assistant infers the correct capability from the semantic routing table in @AGENTS.md section 3.0.
+`@name` in Cursor resolves to the native subagent. Without explicit trigger, infer capability from section 3.0's semantic routing table.
 
-## Reference sections in @AGENTS.md
+## Reference in @AGENTS.md
 
-- Section 3.0: semantic routing table and default dispatch.
-- Section 3.0.1: tool-specific behavior (dispatch, workflow chain semantics, platform disambiguation).
-- Section 3: always-on workflow discipline (intent gate, verification, type-safety hard blocks, TDD, git discipline).
-- Section 4: capability index with links into `skills/<name>.md`.
-- Section 5: multi-agent orchestration chains.
-- Section 6: anti-patterns and red flags.
+- 3.0: semantic routing.
+- 3.0.1: tool-specific dispatch and chain semantics.
+- 3: always-on workflow discipline.
+- 3.11: provenance of user claims.
+- 4: capability index.
+- 5: multi-agent orchestration chains.
 
 Read @AGENTS.md in full before acting.

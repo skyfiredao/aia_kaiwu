@@ -1,1 +1,0 @@
-../../skills/task-debug.md
