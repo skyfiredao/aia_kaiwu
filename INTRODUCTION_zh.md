@@ -466,6 +466,14 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **Handoff**：`task-single-plan`（带仓库上下文做计划）或任意执行技能。
 - **不用于**：用户已经熟悉、能自己描述约定的仓库。本技能的价值在于不熟悉的领域。
 
+#### `task-distill-spec`
+
+- **目的**：从现有项目文档蒸馏出 overview 级项目 spec（术语表、核心领域模型、设计原则、主干业务逻辑）为可预加载文件，让团队各自的 AI 工具共享同一基线，避免信息差、用词不统一、设计方向偏离。它是骑在详细文档之上的摘要层，不替代、不夺权。
+- **何时进入**：团队想要一份从设计/需求文档蒸馏出的、供 AI 预加载的共享基线（"蒸馏项目 spec"、"生成项目 overview/术语基线"）；或原始文档变更后需要重蒸。
+- **硬规则**：只压缩只定义，绝不推断或杜撰设计。每条 trace 回具体源（`doc:section`），trace 不到的不进。文档为主源；对话历史只贡献"已采纳"的决策（取最新），不收被否决的提案。源冲突标记暴露、不擅自消解。静态快照：源改则重蒸。准入闸：项目专有 + 非显然 + 可 trace。
+- **Handoff**：无。产出 overview spec 即终止；人工审阅标注是建议性的（非阻塞）。
+- **不用于**：替代详细设计文档、做或改设计决策、增量/动态更新（源改则整体重蒸）。没有源文档时凭记忆蒸馏。
+
 #### `task-doc-write`
 
 - **目的**：从代码和上下文撰写专业文档。四种模式（api、architecture、guide、readme），两种写作风格（专业风格用于技术参考，科普风格用于 README 和项目介绍）。
@@ -518,7 +526,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 - **目的**: 把模糊或多步请求走完 `task-clarify` → `task-single-plan` → `task-challenge` → 用户批准 → 持久化 plan artifacts（`plan.md` 必写；`design.md` / `guide.md` / `README.md` 按需写）到 `spec/<slug>/`。
 - **入场时机**: 请求模糊、≥ 2 步、涉及架构选择，或用户说"先做个计划"、"plan first"。
-- **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.1 节
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
 - **调度规则**: 模糊请求不许跳过 `task-clarify`。第 6 步（用户批准）之前不许推进。批准前不许写 `spec/<slug>/`。写入时不许生造 step 3 未产出的可选 artifact（design/guide/README）。
 - **交接**: `job-build`（持久化完成后；执行器从磁盘读 `spec/<slug>/plan.md`）。
 - **不适用**: 单步任务（直接走 `task-yugong` 或具体技能）。
@@ -527,7 +535,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 - **目的**: 按 TDD 纪律执行已批准的计划，每 ~3 步用 `task-checkpoint`。执行体是单模块 `task-yugong` 或跨模块 `task-multi-build`。
 - **入场时机**: 已有批准的计划（走完 `job-plan` 或用户直接提供）；用户说"实现"、"执行"、"落实"。
-- **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.1 节
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
 - **调度规则**: 遇到 checkpoint `halt` 未经用户重置不推进。scope 变大绝不悄悄扩张，停下汇报。大状态转换前必须先 checkpoint。
 - **交接**: `job-review`（所有计划步骤完成后）。
 - **不适用**: 无计划的即兴实现（先走 `job-plan`）。
@@ -536,7 +544,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 - **目的**: 通过 `task-checkpoint` 按已批准计划检查执行中工作（continue / adjust plan / halt）。
 - **入场时机**: 执行中"跑到哪了"、执行体出现偏移，或被 `job-build` 每 ~3 步自动派发。
-- **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.1 节
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
 - **调度规则**: 不在这里做完成后审查。本工作流不动文件。
 - **交接**: `continue` 回执行体（`task-yugong` / `task-multi-build`）；`adjust plan` → `job-plan`；`halt` → 用户。
 - **不适用**: 完成后的综合审查（用 `job-review`）。
@@ -545,7 +553,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 - **目的**: bug 一次修的诊断路径（`task-debug` 六阶段的 Phase 1-3）；硬/flaky/串行症状 bug 升级到 `job-debug-deep`。
 - **入场时机**: 用户报 bug、测试挂、行为反常；首次尝试。
-- **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.1 节
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
 - **调度规则**: 第 1 阶段的反馈回路绝不跳过。修复前必须先写回归测试。第 3 阶段确认是硬 bug 就升级，不硬撑。绝不用 `sleep()` 掩盖竞态。
 - **交接**: `task-yugong`（直接修）；`job-debug-deep`（升级）。
 - **不适用**: 已经首次修失败的 bug（直接走 `job-debug-deep`）。
@@ -554,7 +562,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 - **目的**: 代码-文档对齐。`task-explore` 枚举文档中描述实现的地方 → 分类 stale/missing/drift → 用户批准方向 → 持久化已批准报告 → `task-yugong` / `task-multi-build` 应用编辑 → `task-judge` 再扫。
 - **入场时机**: "文档过时"、"对齐一下"、"文档和代码不一致"，或多轮重构后主动跑。
-- **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.1 节
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
 - **调度规则**: 不动 spec/PRD 类"意图"文档除非用户明确同意。不做整批文本 diff，逐条改保留语义。
 - **交接**: 无（干净重扫后终止）。
 - **不适用**: 从零起草新文档（那是常规实现任务）。
@@ -563,26 +571,26 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 - **目的**: 收尾前的完成审查。链路是 `task-challenge`（计划 vs 实际 diff 逐条核对）→ `task-judge`（Standards 轴 + Spec 轴）→ `task-explore`（已知 bug 特征与残留扫描）→ 聚合结论。
 - **入场时机**: 声明任务完成前；开 PR 或合并 PR 前；feature 分支发布前；执行类技能报告收尾之后。
-- **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.1 节
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
 - **调度规则**: Standards 与 Spec 两条轴分开归属，绝不合并。只要还有 `[blocker]`，绝不给 `APPROVED`。本工作流内不"顺手改一下"。
 - **交接**: 由 `task-multi-build` 或 `task-yugong` 承接 `[blocker]` 和 `[should-fix]` 项。
 - **不适用**: 执行过程中的检查（那是 `task-checkpoint`，它跑在执行**中**，本工作流跑在执行**后**）。
 
 #### `job-pr-maintain`
 
-- **目的**: 维护一个已开 PR 的评审生命周期。从 GitHub 读取评审评论，评估其技术有效性，派执行技能修复，更新 PR 描述，回复评审线程。
+- **目的**: 维护一个已开 PR 的评审生命周期。每轮对当前 diff 从第一性原理重新 review（用 `task-judge`，绝不校验外部工具的修复标记），读取人类 reviewer 的评论，派执行技能修复，更新 PR 描述，回复评审线程。
 - **入场时机**: 用户要求处理 PR 评审意见、更新 PR 描述、或回复 PR 反馈。
-- **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.1 节
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
 - **职责边界**: 本工作流拥有 GitHub API 交互（读评论、更新描述、回复线程）。不拥有本地 git 操作（diff、commit、branch、push），那些仍归执行技能和 AGENTS.md 第 3.8 节管。
-- **调度规则**: GitHub 写操作（更新描述、发回复）需要用户明确授权。未授权时只做读取和分析，把建议的操作作为输出呈现给用户手动执行。本工作流内不 push 代码；push 是执行技能的动作，受 AGENTS.md 3.6 管。
-- **交接**: `job-review`（可选，push 前审查）。用户（授权 GitHub 写操作和 push）。
+- **调度规则**: review 每轮从头做；自动工具的修复标记、"resolved" 标记一律不读不校验。GitHub 写操作需要用户明确授权，且需用户确认审阅结果后才 post。若 review 无问题且无人类评论需回应，则不 post 任何内容。本工作流内不 push 代码；push 是执行技能的动作，受 AGENTS.md 3.6 管。
+- **交接**: `job-security-review`（diff 触及安全面时）。用户（确认审阅结果、授权 GitHub 写操作和 push）。
 - **不适用**: 从零创建新 PR（那是执行技能加 push + pr-open 授权的事）。没有 PR 的纯代码审查（用 `job-review`）。
 
 #### `job-security-review`
 
 - **目的**: 端到端安全审计。链路是 `task-explore`（定位安全敏感面）→ 独立的 `task-judge` 与 `task-librarian` 检查（宿主支持时并行）→ 必要时用 `task-debug` 深挖不清楚的漏洞路径 → 聚合结论。
 - **入场时机**: 上线带安全面的代码前（认证、会话、加密、密钥/令牌处理、输入校验、反序列化）；开涉及安全代码的 PR 前；发版周期性巡检；发现安全相关 bug、需先把利用面画清楚再动手修的时候。
-- **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.1 节
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
 - **调度规则**: 子智能体的发现按来源分列，不跨源合并或重排。`[blocker]` 必须给出具体失效模式。最终结论就一句 `APPROVED` / `CHANGES-REQUESTED` / `BLOCKED`。
 - **交接**: 由 `task-multi-build` 或 `task-yugong` 承接 `[blocker]` 和 `[should-fix]` 项。
 - **不适用**: 非安全类的一般正确性审查（用 `job-review`）。
@@ -591,7 +599,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 - **目的**: 硬 bug 诊断的端到端流程。驱动 `task-debug` 走完六阶段证据优先回路；第 3 阶段按需派发 `task-librarian` 拉外部知识；第 4 阶段发现根因是架构问题时升级到 `task-judge`；第 5 阶段把修复交给 `task-yugong`（单模块）或 `task-multi-build`（跨模块）；第 6 阶段校验清理。
 - **入场时机**: 一次简单修没搞定的硬 bug 或性能回归；"有时候会挂"的 flake；一串没有明显起因的症状；对同一个 bug 准备做第二次修复前。
-- **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.1 节
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
 - **调度规则**: 没有能报红的反馈回路就绝不进假设阶段。debug 日志必须带 SHA1 前缀、并配套 `spec/debug/<sha1_short>.md` 记录。回归测试要在**修改之前**写在正确的 seam 上。绝不用 `sleep()` 掩盖竞态；第 6 阶段清理绝不能跳。
 - **交接**: `task-yugong`（单模块修复）或 `task-multi-build`（跨模块修复）；可选在第 6 阶段末尾再做一次 `task-judge` 审查。
 - **不适用**: 首次尝试就能修好的简单 bug（直接走 `job-debug` 或 `task-yugong`）。
@@ -600,7 +608,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 - **目的**: 单会话自主 supervisor。创建 worktree 分支，串起 `task-single-plan` → 内联执行（basket 级重试）→ review 直到 `Done`。自维护 loop table 于 `spec/<slug>/job-spiral-up.md`；原子技能输出不修改。每 cycle 在 spiral 分支上 commit。
 - **入场时机**: 用户明确要求单会话内自主跑到收敛（"循环直到结束""一直到结束""不要停，直到完成""无限循环"等），并给出有界目标。"无限循环"只表达意图，实际执行以 `Done` 为终止。
-- **链路参考**: [`AGENTS.md`](AGENTS.md) 第 5.1 节
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
 - **调度规则**: 不派 `task-yugong` / `task-multi-build` / `task-clarify` / `job-plan` / `job-build` / `job-review` / `job-security-review`。plan step 内联执行。basket 失败必须命名实质差异化的下一次尝试才能重试；否则记为 stuck-point fix item。fix items 按 LIFO 处理。stall 触发对称 re-planning。
 - **终止状态**: 仅 `Done`。所有 plan step 完成且无未解决 fix item 时到达。worktree 分支留给用户 merge 或 discard。
 - **不适用**: 模糊请求、跨 session 恢复、需要不可逆共享影响操作的计划（这些应在 planning 阶段被 `task-challenge` 拒绝）。
@@ -696,12 +704,12 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 **如何开始用这些技能：**
 
-- 读 `AGENTS.md` 第 3.0 节了解语义路由，第 4 节查看技能条目。需要显式指定时输入 `@task-<slug>` 或 `@job-<slug>`；否则描述任务让路由器选择。
+- 读 `AGENTS.md` 第 3.0 节了解语义路由；技能目录在本文件第二部分和 `README.md`。需要显式指定时输入 `@task-<slug>` 或 `@job-<slug>`；否则描述任务让路由器选择。
 - 不确定用哪个技能时，找第三部分里最接近的场景，跟着链走。
 - 某个方法论用起来陌生时，回第一部分再读那节，找一个小的真实任务试。
 
 **下一步去哪：**
 
 - `README.md`：安装和分工具配置。
-- `AGENTS.md`：AI 每次 session 开始时读的操作规则。第 3.0 节是默认状态和语义路由表；第 3.1-3.11 节是 always-on 纪律；第 5 节是编排模式。
+- `AGENTS.md`：AI 每次 session 开始时读的操作规则。第 3.0 节是默认状态和语义路由表；第 3.1-3.11 节是 always-on 纪律。能力目录和编排链在本文件与 `README.md`。
 - `skills/task-<slug>.md` 和 `skills/job-<slug>.md`：每个技能或工作流的完整行为契约、输出模板、硬约束。

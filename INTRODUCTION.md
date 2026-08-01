@@ -472,6 +472,14 @@ Skills that gather information without editing.
 - **Handoff**: `task-single-plan` (plan work with repo context) or any executor.
 - **Not for**: Repos the user already knows well and can describe the conventions for. The skill's value is in unfamiliar territory.
 
+#### `task-distill-spec`
+
+- **Purpose**: Distill an overview-level project spec (glossary, core domain model, design principles, main business logic) from existing project docs into a preloadable file, so a team's AI tools share one baseline and avoid information gaps, inconsistent terminology, and design drift. A summary layer over the detailed docs, not a replacement or authority.
+- **When to enter**: A team wants a shared AI-preload baseline distilled from design / requirement docs ("蒸馏项目 spec", "生成项目 overview/术语基线"); or source docs changed and the existing distilled spec must be regenerated.
+- **Hard rule**: Compress and define only, never infer or invent design decisions. Every entry traces to a concrete source (`doc:section`); untraceable content is excluded. Docs are the primary source; conversation history contributes only already-adopted decisions (latest wins), never rejected proposals. Source conflicts are flagged, not resolved. Static snapshot: re-distill when sources change. Admission gate: project-specific + non-obvious + traceable.
+- **Handoff**: None. Produces the overview spec and terminates; the human-review note is advisory (non-blocking).
+- **Not for**: Replacing detailed design docs, making or changing design decisions, or incremental/dynamic updates (re-distill on source change). Distilling from memory without source docs.
+
 #### `task-doc-write`
 
 - **Purpose**: Write professional documentation from code and context. Four modes (api, architecture, guide, readme) with two distinct writing styles (professional for technical reference, accessible for README and introductions).
@@ -524,7 +532,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 
 - **Purpose**: Route an ambiguous or multi-step request → `task-clarify` → `task-single-plan` → `task-challenge` → user approval → persist the approved plan artifacts (`plan.md` always; `design.md` / `guide.md` / `README.md` when the plan warrants) to `spec/<slug>/`.
 - **When to enter**: Request is ambiguous, ≥ 2 steps, involves architectural choice, or user says "plan first" / "先做个计划".
-- **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.1
+- **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: Never skip `task-clarify` for ambiguous requests. Never proceed past step 6 (user approval) without explicit OK. Never write to `spec/<slug>/` before approval. Never fabricate optional artifacts (design/guide/README) at write time if their section was not produced in step 3.
 - **Handoff**: `job-build` (once persisted; executor reads `spec/<slug>/plan.md` from disk).
 - **Not for**: Single-step tasks (route directly to `task-yugong` or the specific skill).
@@ -533,7 +541,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 
 - **Purpose**: Execute an approved plan under TDD discipline with mid-execution checkpoints. Chains `task-yugong` (single-scope) or `task-multi-build` (multi-module) with `task-checkpoint` every ~3 steps.
 - **When to enter**: A plan already exists (approved via `job-plan` or provided by user); user says "implement" / "execute" / "落实".
-- **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.1
+- **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: Never continue past a `halt` checkpoint verdict without user reset. Never silently expand scope; stop and report if the task turns out larger. Never skip the checkpoint after a major state transition.
 - **Handoff**: `job-review` (once all planned steps complete).
 - **Not for**: Un-planned improvisation (go through `job-plan` first).
@@ -542,7 +550,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 
 - **Purpose**: Verify in-progress work against the approved plan through `task-checkpoint` (continue / adjust plan / halt).
 - **When to enter**: Mid-execution "check progress", executor drift, or automatic dispatch by `job-build` every ~3 steps.
-- **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.1
+- **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: Never run post-completion review here. Never edit files inside this workflow.
 - **Handoff**: Executor (`task-yugong` / `task-multi-build`) if `continue`; `job-plan` if `adjust plan`; user if `halt`.
 - **Not for**: Completed-work review (use `job-review`).
@@ -551,7 +559,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 
 - **Purpose**: First-pass bug diagnosis via `task-debug` (Phase 1-3 of the six-phase loop). Escalates to `job-debug-deep` for hard/flaky/chained bugs.
 - **When to enter**: User reports a bug, test failure, or unexpected behavior; first attempt.
-- **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.1
+- **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: Never skip Phase 1 (feedback loop); no hypothesis before red-capable repro. Never apply a fix without a regression test written first. Never continue past Phase 3 if the bug is hard; escalate. Never `sleep()`-cover a race.
 - **Handoff**: `task-yugong` (apply straightforward fix); `job-debug-deep` (escalate on hard bug).
 - **Not for**: Bugs already resisting a first fix (go direct to `job-debug-deep`).
@@ -560,7 +568,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 
 - **Purpose**: Code-doc alignment. `task-explore` enumerates doc touch-points → classify stale/missing/drift → user approves direction → persist the approved report → `task-yugong` / `task-multi-build` applies edits → `task-judge` re-scans.
 - **When to enter**: "docs are out of date" / "align docs" / "文档和代码不一致" / large feature landed and doc drift accumulated.
-- **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.1
+- **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: Never edit spec/PRD intent documents without explicit user OK. Never use bulk text diff to apply changes; item-by-item preserves semantics.
 - **Handoff**: None (workflow terminates on clean re-scan).
 - **Not for**: Writing new documentation from scratch (that's a normal implementation task).
@@ -569,26 +577,26 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 
 - **Purpose**: Pre-completion review. Chains `task-challenge` (plan-vs-diff walkthrough) → `task-judge` (Standards axis + Spec axis) → `task-explore` (known-bug signatures and leftover sweep) → aggregate.
 - **When to enter**: Before declaring any significant task done; before opening or merging a PR; before releasing a feature branch; after an executor session reports completion.
-- **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.1
+- **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: Standards and Spec axes kept separately attributed and never merged. No `APPROVED` verdict if any `[blocker]` remains. Do not "quickly fix" findings inside this workflow.
 - **Handoff**: `task-multi-build` or `task-yugong` to apply the `[blocker]` and `[should-fix]` items.
 - **Not for**: In-progress checks (`task-checkpoint` runs during execution; this runs after).
 
 #### `job-pr-maintain`
 
-- **Purpose**: Maintain an open pull request through its review lifecycle. Read review comments from GitHub, evaluate their technical validity, apply warranted fixes, update the PR description, and reply to review threads.
+- **Purpose**: Maintain an open pull request through its review lifecycle. Run a fresh first-principles review of the current diff every round (via `task-judge`, never verifying external tools' fix markers), read human reviewer comments, apply warranted fixes, update the PR description, and reply to review threads.
 - **When to enter**: User asks to address PR review comments, update a PR description, or respond to PR feedback.
-- **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.1
+- **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Boundary**: This workflow owns GitHub API interactions (read comments, update description, reply to threads). It does not own local git operations (diff, commit, branch, push), which remain under AGENTS.md section 3.8 and the executing skill's responsibility.
-- **Dispatch rule**: GitHub write operations (update description, post replies) require explicit user authorization. Without authorization, the workflow performs read and analysis only and presents proposed actions as output. Never push code from this workflow; pushing is an executor action under AGENTS.md 3.6.
-- **Handoff**: `job-review` (optional, before pushing fixes). User (to authorize GitHub writes and push).
+- **Dispatch rule**: The review is done from scratch each round; auto-tool fix markers and "resolved" flags are never read or verified. GitHub write operations require explicit user authorization AND user confirmation of the review results. If the review finds no issues and no human comment needs a reply, nothing is posted. Never push code from this workflow; pushing is an executor action under AGENTS.md 3.6.
+- **Handoff**: `job-security-review` (when the diff touches security surface). User (to confirm review results, authorize GitHub writes, and push).
 - **Not for**: Creating new PRs from scratch (that is an executor action with push + pr-open authorization). Pre-completion code review without a PR (use `job-review`).
 
 #### `job-security-review`
 
 - **Purpose**: End-to-end security audit. Chains `task-explore` (locate security-sensitive surfaces) → independent `task-judge` + `task-librarian` passes (parallel where supported) → optional `task-debug` escalation for unclear vulnerabilities → aggregate.
 - **When to enter**: Before shipping code with security surface (auth, session, crypto, secret/token handling, input validation, deserialization); before opening a PR that touches security-sensitive code; on a periodic per-release cadence; when a security-relevant bug's exploit surface needs charting before the fix.
-- **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.1
+- **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: Sub-agent findings preserved by source and never merged or re-ranked. `[blocker]` requires a concrete named failure mode. Verdict is one line, `APPROVED` / `CHANGES-REQUESTED` / `BLOCKED`.
 - **Handoff**: `task-multi-build` or `task-yugong` to apply the `[blocker]` and `[should-fix]` items.
 - **Not for**: Non-security correctness review (use `job-review`).
@@ -597,7 +605,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 
 - **Purpose**: Hard-bug diagnosis end-to-end. Drives `task-debug` through the six-phase evidence-first loop; dispatches `task-librarian` in Phase 3 when a hypothesis depends on external knowledge; escalates to `task-judge` in Phase 4 if the root cause is architectural; hands the Phase 5 fix off to `task-yugong` (single-scope) or `task-multi-build` (multi-module); verifies Phase 6 cleanup.
 - **When to enter**: Hard bug or perf regression that resisted a first fix; "sometimes fails" flakiness; chain of symptoms with no obvious cause; before a second fix attempt on a bug the executor cannot pin down.
-- **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.1
+- **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: No jumping to hypotheses without a red-capable feedback loop. No debug log without a SHA1-prefixed tag and matching `spec/debug/<sha1_short>.md` record. Regression test written at a correct seam **before** the fix. Never `sleep()`-cover a race; never skip Phase 6 cleanup.
 - **Handoff**: `task-yugong` (single-scope fix) or `task-multi-build` (multi-module fix); optional final `task-judge` audit on the fix diff.
 - **Not for**: A first-attempt fix on a straightforward bug (that goes to `job-debug` or `task-yugong` directly).
@@ -606,7 +614,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 
 - **Purpose**: Single-session autonomous supervisor. Creates a worktree branch, drives `task-single-plan` → inline execution with basket-level retry → review to `Done`. Maintains its own loop table under `spec/<slug>/job-spiral-up.md`; atomic skill outputs are never mutated. Commits every cycle on the spiral branch.
 - **When to enter**: User explicitly requests an autonomous run to convergence ("loop until done", "keep going until complete", "循环直到结束", or equivalent) and supplies a bounded goal within one session. "Infinite loop" expresses intent only; execution is bounded by the `Done` terminal.
-- **Chain reference**: [`AGENTS.md`](AGENTS.md) section 5.1
+- **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: Never dispatches `task-yugong`, `task-multi-build`, `task-clarify`, `job-plan`, `job-build`, `job-review`, or `job-security-review`. Executes plan steps inline. On basket failure, requires a materially different next attempt to retry; otherwise records a stuck-point fix item. Fix items handled LIFO. Stall triggers symmetric re-planning.
 - **Terminal states**: `Done` only. Reached when all plan steps are done and no unresolved fix items remain. The worktree branch is left for the user to merge or discard.
 - **Not for**: Ambiguous requests, cross-session recovery, or plans that require irreversible shared-impact actions (those should be rejected by `task-challenge` during planning).
@@ -702,12 +710,12 @@ Three realistic development situations, walked end-to-end. Each shows which skil
 
 **How to start using the skills:**
 
-- Read `AGENTS.md` section 3.0 for semantic routing and section 4 for skill entries. Type `@task-<slug>` or `@job-<slug>` when you want to name a skill explicitly, or describe the task and let the router choose.
+- Read `AGENTS.md` section 3.0 for semantic routing; the skill catalog is in this file (Part 2) and `README.md`. Type `@task-<slug>` or `@job-<slug>` when you want to name a skill explicitly, or describe the task and let the router choose.
 - When in doubt about which skill, look for the closest scenario in Part 3 and follow its chain.
 - When a methodology feels unfamiliar in practice, re-read its section in Part 1 and try it on a small real task.
 
 **Where to go next:**
 
 - `README.md`: installation and per-tool setup.
-- `AGENTS.md`: the live operating rules that AI reads on session start. Section 3.0 is the default state and semantic routing table; sections 3.1-3.11 are the always-on discipline; section 5 is orchestration patterns.
+- `AGENTS.md`: the live operating rules that AI reads on session start. Section 3.0 is the default state and semantic routing table; sections 3.1-3.11 are the always-on discipline. The capability catalog and orchestration chains live in this file and `README.md`.
 - `skills/task-<slug>.md` and `skills/job-<slug>.md`: the full behavior contract, output template, and hard constraints for each skill or workflow.

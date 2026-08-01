@@ -397,7 +397,7 @@ Reference: <https://code.visualstudio.com/docs/agents/reference/ai-settings>
 
 1. **改能力行为 / 纪律 / 索引条目** → 直接改 `skills/<slug>/SKILL.md`（或改 `AGENTS.md` 第 3 节里的共享纪律）。`.claude/agents/`、`.cursor/agents/`、`.opencode/skills/*/SKILL.md`、`CLAUDE.md` 下的软链接会自动同步。
 2. **改能力的可用工具、model、handoff 目标、可调 subagent 白名单** → 改 `skills/<slug>/SKILL.md` 顶端的 frontmatter。各家原生工具都通过软链接读同一份 frontmatter。
-3. **加或删一个能力** → 先改 `AGENTS.md` 第 3.0 节路由表和第 4 节能力索引；增删 `skills/<slug>/SKILL.md`；在 `.claude/agents/`、`.cursor/agents/`、`.opencode/skills/` 里对应地增删投影。
+3. **加或删一个能力** → 先改 `AGENTS.md` 第 3.0 节路由表和 `README.md` / `INTRODUCTION.md` 的能力表；增删 `skills/<slug>/SKILL.md`；在 `.claude/agents/`、`.cursor/agents/`、`.opencode/skills/` 里对应地增删投影。
 4. `.cursor/rules/agents.mdc` 里是 `@AGENTS.md` 引用，只有当你要改它自己的指路片段时才需要动它。
 
 ## 技能与工作流
@@ -408,37 +408,38 @@ Reference: <https://code.visualstudio.com/docs/agents/reference/ai-settings>
 
 | 技能 | 一句话定位 |
 |---|---|
-| [`task-clarify`](skills/task-clarify.md) | 批判用户请求本身，推一个最有价值的澄清问题。 |
-| [`task-single-plan`](skills/task-single-plan.md) | Planner。产出编号原子步骤或 spec/PRD。 |
-| [`task-challenge`](skills/task-challenge.md) | 对抗式审查一个写好的计划。 |
-| [`task-checkpoint`](skills/task-checkpoint.md) | 执行中检查点。`continue` / `adjust plan` / `halt`。 |
-| [`task-quick-verify`](skills/task-quick-verify.md) | 一次性原型回答一个设计问题。 |
-| [`task-strategy`](skills/task-strategy.md) | 多会话决策票据地图。每会话 1 张非 research 票。 |
-| [`task-multi-build`](skills/task-multi-build.md) | 多领域实施者，向专家委派。 |
-| [`task-yugong`](skills/task-yugong.md) | **默认**。单一 scope 任务，不委派，磨到验证通过。 |
-| [`task-general`](skills/task-general.md) | 无专家匹配时的混合任务协调器。 |
-| [`task-explore`](skills/task-explore.md) | 本仓库内的上下文 grep。 |
-| [`task-librarian`](skills/task-librarian.md) | 外部文档、OSS repo、第一方 API；只用第一手来源。 |
-| [`task-multimodal-looker`](skills/task-multimodal-looker.md) | 从图片、PDF、图表里描述或抽取信息。 |
-| [`task-repo-analyze`](skills/task-repo-analyze.md) | 分析仓库结构、约定、工具链、CI。消耗 token 较多，会先提示用户；输出持久化到 `spec/repo-analyze/`。 |
-| [`task-doc-write`](skills/task-doc-write.md) | 四种模式（api、architecture、guide、readme）撰写专业文档，区分专业和科普两种风格。 |
-| [`task-judge`](skills/task-judge.md) | 双轴审查（Standards + Spec，两轴独立不合并）。 |
-| [`task-debug`](skills/task-debug.md) | 六阶段证据优先硬 bug 诊断回路。 |
+| [`task-clarify`](skills/task-clarify/SKILL.md) | 批判用户请求本身，推一个最有价值的澄清问题。 |
+| [`task-single-plan`](skills/task-single-plan/SKILL.md) | Planner。产出编号原子步骤或 spec/PRD。 |
+| [`task-challenge`](skills/task-challenge/SKILL.md) | 对抗式审查一个写好的计划。 |
+| [`task-checkpoint`](skills/task-checkpoint/SKILL.md) | 执行中检查点。`continue` / `adjust plan` / `halt`。 |
+| [`task-quick-verify`](skills/task-quick-verify/SKILL.md) | 一次性原型回答一个设计问题。 |
+| [`task-strategy`](skills/task-strategy/SKILL.md) | 多会话决策票据地图。每会话 1 张非 research 票。 |
+| [`task-multi-build`](skills/task-multi-build/SKILL.md) | 多领域实施者，向专家委派。 |
+| [`task-yugong`](skills/task-yugong/SKILL.md) | **默认**。单一 scope 任务，不委派，磨到验证通过。 |
+| [`task-general`](skills/task-general/SKILL.md) | 无专家匹配时的混合任务协调器。 |
+| [`task-explore`](skills/task-explore/SKILL.md) | 本仓库内的上下文 grep。 |
+| [`task-librarian`](skills/task-librarian/SKILL.md) | 外部文档、OSS repo、第一方 API；只用第一手来源。 |
+| [`task-multimodal-looker`](skills/task-multimodal-looker/SKILL.md) | 从图片、PDF、图表里描述或抽取信息。 |
+| [`task-repo-analyze`](skills/task-repo-analyze/SKILL.md) | 分析仓库结构、约定、工具链、CI。消耗 token 较多，会先提示用户；输出持久化到 `spec/repo-analyze/`。 |
+| [`task-distill-spec`](skills/task-distill-spec/SKILL.md) | 从现有文档蒸馏出 overview 级项目 spec（术语表、领域模型、设计原则、业务逻辑）为可预加载文件。只压缩只定义、绝不推断；静态快照。 |
+| [`task-doc-write`](skills/task-doc-write/SKILL.md) | 四种模式（api、architecture、guide、readme）撰写专业文档，区分专业和科普两种风格。 |
+| [`task-judge`](skills/task-judge/SKILL.md) | 双轴审查（Standards + Spec，两轴独立不合并）。 |
+| [`task-debug`](skills/task-debug/SKILL.md) | 六阶段证据优先硬 bug 诊断回路。 |
 
 **工作流**（`job-*`，串接原子技能）：
 
 | 工作流 | 一句话定位 |
 |---|---|
-| [`job-plan`](skills/job-plan.md) | clarify → plan → challenge → approve → 持久化 plan artifacts 到 `spec/<slug>/`。 |
-| [`job-build`](skills/job-build.md) | 在 TDD 下执行已批准计划，每 ~3 步 checkpoint。 |
-| [`job-verify`](skills/job-verify.md) | 按已批准计划做执行中检查。 |
-| [`job-debug`](skills/job-debug.md) | 首轮 bug 诊断；硬 bug 自动升级到 `job-debug-deep`。 |
-| [`job-align`](skills/job-align.md) | 文档与代码对齐。 |
-| [`job-review`](skills/job-review.md) | 完成前审查：challenge → judge → sweep。 |
-| [`job-pr-maintain`](skills/job-pr-maintain.md) | PR 评审生命周期：读 GitHub 评论 → 评估 → 修复 → 更新描述 → 回复。GitHub 写操作需授权。 |
-| [`job-security-review`](skills/job-security-review.md) | 端到端安全审计链（locate → judge + librarian → 可选 debug）。 |
-| [`job-debug-deep`](skills/job-debug-deep.md) | 端到端六阶段硬 bug 诊断。 |
-| [`job-spiral-up`](skills/job-spiral-up.md) | 响应"循环直到结束""一直到结束""不要停，直到完成""无限循环"等表达；单会话内自主跑到 `Done`。 |
+| [`job-plan`](skills/job-plan/SKILL.md) | clarify → plan → challenge → approve → 持久化 plan artifacts 到 `spec/<slug>/`。 |
+| [`job-build`](skills/job-build/SKILL.md) | 在 TDD 下执行已批准计划，每 ~3 步 checkpoint。 |
+| [`job-verify`](skills/job-verify/SKILL.md) | 按已批准计划做执行中检查。 |
+| [`job-debug`](skills/job-debug/SKILL.md) | 首轮 bug 诊断；硬 bug 自动升级到 `job-debug-deep`。 |
+| [`job-align`](skills/job-align/SKILL.md) | 文档与代码对齐。 |
+| [`job-review`](skills/job-review/SKILL.md) | 完成前审查：challenge → judge → sweep。 |
+| [`job-pr-maintain`](skills/job-pr-maintain/SKILL.md) | PR 评审生命周期：对 diff 从第一性原理重新 review → 读人类评论 → 修复 → 更新描述 → 回复。确认后才 post；GitHub 写操作需授权。 |
+| [`job-security-review`](skills/job-security-review/SKILL.md) | 端到端安全审计链（locate → judge + librarian → 可选 debug）。 |
+| [`job-debug-deep`](skills/job-debug-deep/SKILL.md) | 端到端六阶段硬 bug 诊断。 |
+| [`job-spiral-up`](skills/job-spiral-up/SKILL.md) | 响应"循环直到结束""一直到结束""不要停，直到完成""无限循环"等表达；单会话内自主跑到 `Done`。 |
 
 ## 许可证
 

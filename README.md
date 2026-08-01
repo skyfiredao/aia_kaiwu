@@ -400,7 +400,7 @@ If the model skips skill loading, tell it: "Follow AGENTS.md workflow, load the 
 
 1. **Capability behavior / discipline / index entry** → edit `skills/<slug>/SKILL.md` (or the shared rules in `AGENTS.md` section 3). Symlinks under `.claude/agents/`, `.cursor/agents/`, `.opencode/skills/*/SKILL.md`, and `CLAUDE.md` follow automatically.
 2. **Capability tools, model, handoff targets, or subagent list** → edit the frontmatter block at the top of `skills/<slug>/SKILL.md`. All native surfaces read the frontmatter through the symlinks.
-3. **Add or remove a capability** → update `AGENTS.md` section 3.0 routing table and section 4 capability index; add/remove `skills/<slug>/SKILL.md`; create/delete the matching projections under `.claude/agents/`, `.cursor/agents/`, and `.opencode/skills/`.
+3. **Add or remove a capability** → update `AGENTS.md` section 3.0 routing table and the capability tables in `README.md` / `INTRODUCTION.md`; add/remove `skills/<slug>/SKILL.md`; create/delete the matching projections under `.claude/agents/`, `.cursor/agents/`, and `.opencode/skills/`.
 4. `.cursor/rules/agents.mdc` references `@AGENTS.md`; only edit it if you change its own pointer section.
 
 ## Skills and Workflows
@@ -411,37 +411,38 @@ Full behavior contract for each capability lives in [`skills/<slug>/SKILL.md`](s
 
 | Skill | One-line purpose |
 |---|---|
-| [`task-clarify`](skills/task-clarify.md) | Critique the user's request itself. Recommend one clarifying question. |
-| [`task-single-plan`](skills/task-single-plan.md) | Planner. Produce numbered atomic steps or a spec/PRD. |
-| [`task-challenge`](skills/task-challenge.md) | Adversarial critique of a written plan. |
-| [`task-checkpoint`](skills/task-checkpoint.md) | Mid-execution checkpoint. `continue` / `adjust plan` / `halt`. |
-| [`task-quick-verify`](skills/task-quick-verify.md) | Throwaway prototype answering one design question. |
-| [`task-strategy`](skills/task-strategy.md) | Multi-session decision-ticket map. One non-research ticket per session. |
-| [`task-multi-build`](skills/task-multi-build.md) | Multi-domain implementer with delegation to specialists. |
-| [`task-yugong`](skills/task-yugong.md) | **Default.** Single-scope task, no delegation, grind until done. |
-| [`task-general`](skills/task-general.md) | Coordinator for mixed work when no specialist fits. |
-| [`task-explore`](skills/task-explore.md) | Contextual grep in-repo. |
-| [`task-librarian`](skills/task-librarian.md) | External docs, OSS repos, first-party APIs; primary sources only. |
-| [`task-multimodal-looker`](skills/task-multimodal-looker.md) | Describe or extract from images, PDFs, diagrams. |
-| [`task-repo-analyze`](skills/task-repo-analyze.md) | Analyze repo structure, conventions, tooling, CI. Token-intensive; prompts user; persists to `spec/repo-analyze/`. |
-| [`task-doc-write`](skills/task-doc-write.md) | Write documentation in four modes (api, architecture, guide, readme) with professional or accessible style. |
-| [`task-judge`](skills/task-judge.md) | Two-axis audit (Standards + Spec, kept separate). |
-| [`task-debug`](skills/task-debug.md) | Six-phase evidence-first hard-bug diagnosis loop. |
+| [`task-clarify`](skills/task-clarify/SKILL.md) | Critique the user's request itself. Recommend one clarifying question. |
+| [`task-single-plan`](skills/task-single-plan/SKILL.md) | Planner. Produce numbered atomic steps or a spec/PRD. |
+| [`task-challenge`](skills/task-challenge/SKILL.md) | Adversarial critique of a written plan. |
+| [`task-checkpoint`](skills/task-checkpoint/SKILL.md) | Mid-execution checkpoint. `continue` / `adjust plan` / `halt`. |
+| [`task-quick-verify`](skills/task-quick-verify/SKILL.md) | Throwaway prototype answering one design question. |
+| [`task-strategy`](skills/task-strategy/SKILL.md) | Multi-session decision-ticket map. One non-research ticket per session. |
+| [`task-multi-build`](skills/task-multi-build/SKILL.md) | Multi-domain implementer with delegation to specialists. |
+| [`task-yugong`](skills/task-yugong/SKILL.md) | **Default.** Single-scope task, no delegation, grind until done. |
+| [`task-general`](skills/task-general/SKILL.md) | Coordinator for mixed work when no specialist fits. |
+| [`task-explore`](skills/task-explore/SKILL.md) | Contextual grep in-repo. |
+| [`task-librarian`](skills/task-librarian/SKILL.md) | External docs, OSS repos, first-party APIs; primary sources only. |
+| [`task-multimodal-looker`](skills/task-multimodal-looker/SKILL.md) | Describe or extract from images, PDFs, diagrams. |
+| [`task-repo-analyze`](skills/task-repo-analyze/SKILL.md) | Analyze repo structure, conventions, tooling, CI. Token-intensive; prompts user; persists to `spec/repo-analyze/`. |
+| [`task-distill-spec`](skills/task-distill-spec/SKILL.md) | Distill an overview-level project spec (glossary, domain model, principles, business logic) from existing docs into a preloadable file. Compress/define only, never infer; static snapshot. |
+| [`task-doc-write`](skills/task-doc-write/SKILL.md) | Write documentation in four modes (api, architecture, guide, readme) with professional or accessible style. |
+| [`task-judge`](skills/task-judge/SKILL.md) | Two-axis audit (Standards + Spec, kept separate). |
+| [`task-debug`](skills/task-debug/SKILL.md) | Six-phase evidence-first hard-bug diagnosis loop. |
 
 **Workflows** (`job-*`, chain atomic skills):
 
 | Workflow | One-line purpose |
 |---|---|
-| [`job-plan`](skills/job-plan.md) | Clarify → plan → challenge → approve → persist plan artifacts to `spec/<slug>/`. |
-| [`job-build`](skills/job-build.md) | Execute approved plan under TDD with checkpoints every ~3 steps. |
-| [`job-verify`](skills/job-verify.md) | Mid-execution checkpoint against the approved plan. |
-| [`job-debug`](skills/job-debug.md) | First-pass bug diagnosis; auto-escalates to `job-debug-deep` for hard bugs. |
-| [`job-align`](skills/job-align.md) | Bring documentation back into alignment with code. |
-| [`job-review`](skills/job-review.md) | Pre-completion review: challenge → judge → sweep. |
-| [`job-pr-maintain`](skills/job-pr-maintain.md) | PR review lifecycle: read GitHub comments → evaluate → fix → update description → reply. GitHub writes require authorization. |
-| [`job-security-review`](skills/job-security-review.md) | End-to-end security audit chain (locate → judge + librarian → optional debug). |
-| [`job-debug-deep`](skills/job-debug-deep.md) | Six-phase hard-bug diagnosis end-to-end. |
-| [`job-spiral-up`](skills/job-spiral-up.md) | Single-session autonomous convergence for "loop until done", "keep going until complete", and equivalent requests; execution remains bounded. |
+| [`job-plan`](skills/job-plan/SKILL.md) | Clarify → plan → challenge → approve → persist plan artifacts to `spec/<slug>/`. |
+| [`job-build`](skills/job-build/SKILL.md) | Execute approved plan under TDD with checkpoints every ~3 steps. |
+| [`job-verify`](skills/job-verify/SKILL.md) | Mid-execution checkpoint against the approved plan. |
+| [`job-debug`](skills/job-debug/SKILL.md) | First-pass bug diagnosis; auto-escalates to `job-debug-deep` for hard bugs. |
+| [`job-align`](skills/job-align/SKILL.md) | Bring documentation back into alignment with code. |
+| [`job-review`](skills/job-review/SKILL.md) | Pre-completion review: challenge → judge → sweep. |
+| [`job-pr-maintain`](skills/job-pr-maintain/SKILL.md) | PR review lifecycle: fresh first-principles review of the diff → read human comments → fix → update description → reply. Posts only after user confirmation; GitHub writes require authorization. |
+| [`job-security-review`](skills/job-security-review/SKILL.md) | End-to-end security audit chain (locate → judge + librarian → optional debug). |
+| [`job-debug-deep`](skills/job-debug-deep/SKILL.md) | Six-phase hard-bug diagnosis end-to-end. |
+| [`job-spiral-up`](skills/job-spiral-up/SKILL.md) | Single-session autonomous convergence for "loop until done", "keep going until complete", and equivalent requests; execution remains bounded. |
 
 ## License
 

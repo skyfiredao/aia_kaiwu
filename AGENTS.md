@@ -39,6 +39,7 @@ When the current user message does not explicitly invoke an agent via `@name`:
 | Locate code in this repo ("where is X defined?") | `@task-explore` |
 | External library / API research | `@task-librarian` |
 | Analyze repository structure, conventions, tooling ("分析一下这个库") | `@task-repo-analyze` |
+| Distill an overview-level project spec (glossary / concepts / principles / business logic) from existing docs for AI preload ("蒸馏项目 spec", "生成项目 overview/术语基线") | `@task-distill-spec` |
 | Write documentation (API reference, design doc, guide, README) | `@task-doc-write` |
 | Analyze image / PDF / diagram | `@task-multimodal-looker` |
 | Throwaway prototype for a design question | `@task-quick-verify` |
@@ -54,12 +55,16 @@ Explicit user invocation always overrides the classification. Honor whichever ca
 
 **Contract loading.** Entering any `task-*` or `job-*` capability requires loading the full skill file as the first action (mechanism in section 3.0.1). Skipping this is a discipline violation.
 
+**Non-routed capabilities.** `task-single-plan`, `task-multi-build`, `task-challenge`, `task-checkpoint`, `task-judge`, and `task-debug` are workflow implementation steps — entered via a `job-*` workflow or explicit user invocation, never auto-routed from a bare prompt.
+
+**Where the rest lives.** Each capability's full contract is at `skills/<slug>/SKILL.md` (derive the path from the slug). The human-browsable capability catalog and end-to-end chains live in `README.md` and `INTRODUCTION.md`, not in this file.
+
 ### 3.0.1 Tool-specific behavior
 
 **Capability dispatch and contract loading.**
 
-- opencode: capability and workflow contracts load on demand via `skill(name="<slug>")` (for example, `skill(name="task-yugong")`). The AI stays in the parent thread; `task-*` and `job-*` capabilities are not registered as native subagents in opencode. In this file, `@task-yugong` is a text convention for naming the capability, not a literal opencode mention; it maps to `skill(name="task-yugong")` at runtime.
-- Cursor / Claude Code / VS Code + Copilot: invoking `@<slug>` as a native subagent auto-loads the corresponding `.cursor/agents/<slug>.md` or `.claude/agents/<slug>.md` file. When staying in the parent thread while following a capability's persona, read `skills/<slug>.md` first.
+- Invoke a capability by its slug. In opencode, load it on demand via `skill(name="<slug>")` and stay in the parent thread (`@task-yugong` is a naming convention, not a native mention). In Cursor / Claude Code / VS Code, `@<slug>` invokes it as a native subagent. Either way, entering a capability means loading its `skills/<slug>/SKILL.md` contract first.
+- Per-tool file layout, symlink projections, and install steps live in `README.md` — setup concerns, not runtime behavior.
 
 **Workflow chain semantics.**
 
@@ -182,66 +187,8 @@ Skipping TDD for a specific task requires the user to say "skip TDD for this" (w
 
 ### 3.10 Isolation
 
-Use a dedicated git worktree (`git worktree add ../<branch> -b <branch>`; remove with `git worktree remove ../<branch>` after merge) for: multi-session feature work; experimental refactor; parallel agent execution (section 5); reproducing a bug on an old commit. Skip isolation for trivial single-file edits.
+Use a dedicated git worktree (`git worktree add ../<branch> -b <branch>`; remove with `git worktree remove ../<branch>` after merge) for: multi-session feature work; experimental refactor; parallel agent execution; reproducing a bug on an old commit. Skip isolation for trivial single-file edits.
 
 ### 3.11 Provenance of user claims
 
 When attributing a claim to the user ("the user decided/said/asked for X"), apply the origin test: was X stated by the user in a Human turn, or proposed by you and later accepted? Acceptance authorizes exactly the proposal as stated, not logical extensions. If the user picked one from a set you proposed, only the selection is theirs; the reasoning and unpicked options remain yours.
-
-## 4. Capability Index
-
-Full behavior contract, output shape, hard constraints, and historical notes for each capability live in [`skills/<name>.md`](skills/). Per-tool mount mechanism (opencode `skill(name=...)` on demand vs Cursor / Claude Code / VS Code native subagent auto-load) is in section 3.0.1; per-tool file layout and install steps are in [`README.md`](README.md).
-
-The table below is a compact lookup index; every column is a one-line gist that points into the full spec.
-
-| Capability | Purpose | When to enter | Handoff to |
-|---|---|---|---|
-| [**task-single-plan**](skills/task-single-plan.md) | Produce a written plan or spec via first-principles derivation. | multi-step, architectural choice, >1 module | task-challenge → task-multi-build / task-yugong; task-strategy for multi-session |
-| [**task-multi-build**](skills/task-multi-build.md) | Multi-domain implementer with delegation. | multi-module, delegation-friendly | task-judge |
-| [**task-general**](skills/task-general.md) | Coordinator for mixed research + execution; decompose and dispatch specialists. | fallback when no other section 3.0 row fits; mixed work across unrelated systems | task-multi-build / task-yugong / task-single-plan |
-| [**task-explore**](skills/task-explore.md) | Contextual grep in-repo. | "where is X" / "which file" | task-multi-build / task-yugong / task-single-plan |
-| [**task-librarian**](skills/task-librarian.md) | External docs, primary sources only. | unfamiliar library / OSS research | task-single-plan or task-multi-build |
-| [**task-multimodal-looker**](skills/task-multimodal-looker.md) | Describe / extract from images / PDFs. | user shared media | whoever needs the info |
-| [**task-repo-analyze**](skills/task-repo-analyze.md) | Analyze repo structure, conventions, tooling, CI. Token-intensive; prompts user; persists to `spec/repo-analyze/`. | unfamiliar repo, "分析一下这个库", need repo context | task-single-plan / any executor |
-| [**task-doc-write**](skills/task-doc-write.md) | Write documentation in four modes (api, architecture, guide, readme) with professional or accessible style. | "写文档" / "write docs" / "写个 README" / "document this API" | task-judge (review) |
-| [**task-judge**](skills/task-judge.md) | Adversarial audit on two axes (Standards + Spec). | architecture, post-impl review, ≥2 failed fixes | task-multi-build / task-yugong |
-| [**task-clarify**](skills/task-clarify.md) | Pre-plan critique of the request itself via first-principles decomposition. | ambiguous / larger than one turn | task-single-plan |
-| [**task-challenge**](skills/task-challenge.md) | Adversarial critique of a written plan. | plan exists, needs review | task-single-plan (revise) or task-multi-build / task-yugong (execute) |
-| [**task-checkpoint**](skills/task-checkpoint.md) | Mid-execution checkpoint review. | every ~3 steps / before state transitions | task-multi-build / task-yugong |
-| [**task-quick-verify**](skills/task-quick-verify.md) | Throwaway prototype answering one design question. | "does this feel right" / "what should it look like" | task-single-plan / task-multi-build |
-| [**task-debug**](skills/task-debug.md) | Hard-bug 6-phase diagnostic loop. | bug resisted first fix, flakiness, hard perf regression | task-yugong / task-multi-build / task-judge |
-| [**task-strategy**](skills/task-strategy.md) | Multi-session wayfinding map. | too big for one session, foggy destination | task-librarian / task-quick-verify / task-clarify per ticket; task-single-plan for task tickets |
-| [**task-yugong**](skills/task-yugong.md) *(default)* | Single scoped task, no delegation, grind through obstacles. | any concrete task without a capability chosen | none (terminates) |
-| [**job-plan**](skills/job-plan.md) *(workflow)* | Route ambiguous/multi-step request → clarify → single-plan → challenge → approval → persist plan artifacts (plan/design/guide/README) to `spec/<slug>/`. | ambiguous / ≥ 2 steps / architectural choice | job-build (reads from `spec/<slug>/plan.md`) |
-| [**job-build**](skills/job-build.md) *(workflow)* | Execute approved plan under TDD with mid-execution checkpoints. | plan approved, ready to implement | job-review |
-| [**job-verify**](skills/job-verify.md) *(workflow)* | Mid-execution checkpoint against the approved plan. | "check progress" during execution | executor if continue; job-plan if adjust plan |
-| [**job-debug**](skills/job-debug.md) *(workflow)* | First-pass bug diagnosis; auto-escalates to job-debug-deep for hard bugs. | user reports a bug, first attempt | task-yugong (apply fix) or job-debug-deep (escalate) |
-| [**job-align**](skills/job-align.md) *(workflow)* | Code-doc alignment workflow; executors apply approved edits. | "文档过时" / "align docs" / doc-code drift | none (terminates after executor + judge) |
-| [**job-review**](skills/job-review.md) *(workflow)* | Pre-completion review chain: plan drift + two-axis audit + leftover sweep. | before declaring a task done or opening a PR | task-multi-build / task-yugong (apply fixes) |
-| [**job-pr-maintain**](skills/job-pr-maintain.md) *(workflow)* | PR review lifecycle: read GitHub comments → evaluate → apply fixes → update description → reply. GitHub writes require authorization. | "fix the review comments" / "处理 PR 评审意见" / update PR description | job-review (optional pre-push); user (authorize GitHub writes) |
-| [**job-security-review**](skills/job-security-review.md) *(workflow)* | End-to-end security audit chain. | before shipping security-sensitive change; periodic whole-repo audit | task-multi-build / task-yugong (apply fixes) |
-| [**job-debug-deep**](skills/job-debug-deep.md) *(workflow)* | Six-phase evidence-first hard-bug diagnosis chain. | flaky / resisted first fix / no obvious cause | task-yugong / task-multi-build (apply fix); task-judge (post-fix audit) |
-| [**job-spiral-up**](skills/job-spiral-up.md) *(workflow)* | Single-session autonomous supervisor. Chains task-single-plan → inline execution with basket-level retry → review inside a git worktree branch to convergence with no further interaction. spiral-up owns `spec/<slug>/job-spiral-up.md`; atomic skill outputs (`task-*.md`) are never mutated. | user asks "loop until done", "keep going until complete", "循环直到结束", "一直到结束", or equivalent | none (terminates: Done) |
-
-Capabilities without a section 3.0 router entry (`task-single-plan`, `task-multi-build`, `task-challenge`, `task-checkpoint`, `task-judge`, `task-debug`) are workflow implementation steps. Enter them via a `job-*` workflow or explicit user invocation; do not auto-route to them from a bare user prompt.
-
-## 5. Multi-Agent Orchestration
-
-### 5.1 Standard chains (reachable through `job-*` workflows)
-
-Every non-trivial task has a canonical chain. Invoke the `@job-*` workflow rather than manually sequencing tasks; the workflow file carries the exact chain, verdict gates, and step-by-step behavior. Load the workflow file on invocation for the full contract.
-
-| Intent | Chain (summary) | Workflow |
-|---|---|---|
-| Non-trivial feature | clarify → plan → challenge → user approval → persist to `spec/<slug>/` → build with checkpoints every ~3 steps → review | `@job-plan` → `@job-build` → `@job-review` |
-| Bug fix (first pass) | reproduce → diagnose → fix + regression test; auto-escalates to `@job-debug-deep` for hard bugs | `@job-debug` |
-| Hard-bug diagnosis | six-phase evidence-first loop: reproduce → minimise → hypothesise → instrument (SHA1 session tag) → fix + regression test → cleanup | `@job-debug-deep` |
-| "How does X work?" | either in-repo OR external; not both by default | `@task-explore` or `@task-librarian` |
-| Multi-session foggy work | chart map → tickets (research / prototype / grilling / task) → resolve one non-research ticket per session → plan → build | `@task-strategy` (per session) |
-| Security audit | locate security-sensitive surfaces (auth / crypto / session / secrets / input / deserialization) → judge (Spec-axis: OWASP + repo requirements) + librarian (external best practice, parallel) → optional debug for unclear vulnerabilities → aggregate [blocker] / [should-fix] / [nice-to-have] | `@job-security-review` |
-| Pre-completion review | challenge (walk plan vs diff) → judge (Standards + Spec, findings never merged) → explore known-bug signatures and leftovers → aggregate → APPROVED / CHANGES-REQUESTED / BLOCKED | `@job-review` |
-| Verification | mid-execution checkpoint (continue / adjust plan / halt) | `@job-verify` |
-| Code-doc alignment | enumerate doc touch-points → classify each stale / missing / drift → user approves direction → apply edits item-by-item → re-scan for residual drift | `@job-align` |
-| PR review lifecycle | identify PR → read GitHub comments → evaluate each (actionable / discussion / resolved / out-of-scope) → apply fixes (task-yugong or task-multi-build) → verify → update PR description + reply to threads (GitHub write authorization required) | `@job-pr-maintain` |
-| Repository analysis | check existing `spec/repo-analyze/` → prompt user → scan structure, CI, manifests, conventions → persist report to `spec/repo-analyze/<repo-name>.md` | `@task-repo-analyze` |
-| Autonomous run to convergence | worktree branch `spiral/<slug>` → inline planning (task-single-plan → task-challenge until approve) → loop: pick fix item or plan step → inline execution with basket-level retry → commit → review (task-judge + task-explore; task-judge OWASP + task-librarian on security surface; task-debug for deep diagnosis) → sync findings into `job-spiral-up.md`; stall → symmetric re-plan; terminates Done when all plan steps done and no unresolved fix items | `@job-spiral-up` |

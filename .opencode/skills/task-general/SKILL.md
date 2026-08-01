@@ -1,1 +1,0 @@
-../../../skills/task-general.md

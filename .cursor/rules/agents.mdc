@@ -9,7 +9,7 @@ Follow @AGENTS.md as operating instructions for every request.
 
 ## Capabilities
 
-Semantic routing: @AGENTS.md section 3.0. Capability index: section 4. Skill contracts: `skills/<name>/SKILL.md`, mounted as native subagents at `.cursor/agents/<name>/SKILL.md`.
+Semantic routing: @AGENTS.md section 3.0. Capability catalog: `README.md` / `INTRODUCTION.md`. Skill contracts: `skills/<name>/SKILL.md`, mounted as native subagents at `.cursor/agents/<name>/SKILL.md`.
 
 `@name` in Cursor resolves to the native subagent. Without explicit trigger, infer capability from section 3.0's semantic routing table.
 
@@ -19,7 +19,5 @@ Semantic routing: @AGENTS.md section 3.0. Capability index: section 4. Skill con
 - 3.0.1: tool-specific dispatch and chain semantics.
 - 3: always-on workflow discipline.
 - 3.11: provenance of user claims.
-- 4: capability index.
-- 5: multi-agent orchestration chains.
 
 Read @AGENTS.md in full before acting.
