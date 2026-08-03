@@ -1,6 +1,6 @@
 ---
 name: task-distill-spec
-description: Distill an overview-level project spec (glossary, core domain model, design principles, main business logic) from existing project docs into a preloadable AGENTS.md-style file, so a team's AI tools share one baseline and avoid information gaps, inconsistent terminology, and design drift. Compress and define only; never infer new design. A static snapshot — re-run when source docs change. Triggers: "蒸馏项目 spec", "生成项目 overview/术语基线", "distill a project overview for the team to preload".
+description: Distill an overview-level project spec (glossary, core domain model, design principles, main business logic) from existing project docs into a preloadable AGENTS.md-style file, so a team's AI tools share one baseline and avoid information gaps, inconsistent terminology, and design drift. Compress and define only; never infer new design. A static snapshot — re-run when source docs change. Triggers — "蒸馏项目 spec", "生成项目 overview/术语基线", "distill a project overview for the team to preload".
 is_background: false
 agents: [task-explore, task-multimodal-looker]
 ---
