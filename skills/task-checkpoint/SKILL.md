@@ -34,7 +34,7 @@ handoffs:
 5. Give one verdict: `continue` / `adjust plan` / `halt`.
 6. If `adjust plan`: propose the specific plan amendment.
 7. If `halt`: state the reason and the required next action.
-8. When invoked inside `job-build`, return the verdict to `job-build`; the workflow routes `adjust plan` through `job-plan`. The direct `task-single-plan` handoff is only for standalone checkpoint use.
+8. When invoked inside `job-build`, return the verdict to `job-build`; the workflow routes `adjust plan` through `job-plan`. The direct `task-single-plan` routing is only for standalone checkpoint use.
 
 ## Hard constraints
 
@@ -62,6 +62,6 @@ handoffs:
 
 ```
 
-## Handoff
+## Next
 
 Executor (`@task-multi-build` or `@task-yugong`) if `continue`, `@task-single-plan` if `adjust plan`; on `halt`, return to caller (caller decides whether to escalate to user, re-plan, or abandon).

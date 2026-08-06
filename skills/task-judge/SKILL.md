@@ -42,10 +42,11 @@ Keep the two axes independent, then aggregate without merging their findings.
 
 Inside each axis subagent, run the review as an adversary, not an advocate. Do not build a case for why the code is fine; build the case for how it fails. Every finding names a concrete failure mode (input that breaks it, sequence that races it, requirement it misses) rather than a vague concern. Attack from at least three angles per axis (e.g. correctness, performance / resource, security / abuse, maintainability, spec drift). "Looks fine" is not a verdict; either you have an attack or you have not looked hard enough.
 
-Two angles deserve explicit attention on the Standards axis:
+Three angles deserve explicit attention on the Standards axis:
 
 - **Data-structure fitness.** Does the chosen data structure create unnecessary complexity, force special-case branches, or obscure data ownership and flow? A poor structure choice ripples into every consumer. Look for data copying that could be eliminated, unclear ownership boundaries, and abstractions that add indirection without reducing cases.
 - **Interface stability.** Do the changes break an existing public interface, remove a capability without deprecation, or silently alter a return shape that callers depend on? Name the broken caller. If no callers exist yet, say so; speculative compatibility is not a finding.
+- **Code-volume necessity.** Is the diff's volume necessary for the shipped behavior? Classify as necessary / partly-avoidable / not-yet-proven. Flag speculative abstraction, providers or extension points with no caller, compatibility wrappers with no consumer, parameter-heavy helpers joining unrelated behavior, and old entry points that should have been deleted. A large diff is not a defect by itself, and a small diff that hides complexity is not a virtue; cite the file/symbol and name what can be deleted or collapsed while preserving behavior.
 
 ## Smell baseline (Fowler _Refactoring_ ch. 3)
 
@@ -85,6 +86,6 @@ one line per axis; do not pick a single winner across axes.
 
 ```
 
-## Handoff
+## Next
 
-`task-multi-build` or `task-yugong` (to apply fixes), or user (for architectural approval).
+Next step — apply the fixes (via `task-yugong` or `task-multi-build`), or route to the user for architectural approval.

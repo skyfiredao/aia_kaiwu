@@ -57,8 +57,8 @@ logic | UI
 <the fact this prototype proved>, prototype at `<path>`
 ```
 
-**Validation loop.** The prototype's decision is only captured after the **user actually runs** the artifact (or explicitly says "trust the prototype as-is") and reports back what happened. `task-quick-verify` cannot self-validate; the whole point is a concrete artifact for the human to exercise. If validation is skipped, mark the decision as `pending validation` in the output and do not proceed to `handoff`.
+**Validation loop.** The prototype's decision is only captured after the **user actually runs** the artifact (or explicitly says "trust the prototype as-is") and reports back what happened. `task-quick-verify` cannot self-validate; the whole point is a concrete artifact for the human to exercise. If validation is skipped, mark the decision as `pending validation` in the output and do not proceed to the next step.
 
-## Handoff
+## Next
 
 `task-single-plan` (with the validated decision) or `task-multi-build` / `task-yugong` (to fold the decision into real code).

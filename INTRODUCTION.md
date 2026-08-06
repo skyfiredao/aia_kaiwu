@@ -362,7 +362,7 @@ Skills that decide *what to build* and *how to sequence it*, before code is writ
 - **When to enter**: The request is ambiguous, larger than one turn, or contains contradictions the user may not have noticed.
 - **Methodologies**: First-Principles Decomposition
 - **Hard rule**: Never proceeds past the draft without user's approval. No plan. No implementation.
-- **Handoff**: `task-single-plan` (once the user clarifies)
+- **Next**: `task-single-plan` (once the user clarifies)
 - **Not for**: Requests that are already precise. Skipping straight to `task-single-plan` wastes a turn.
 
 #### `task-single-plan`
@@ -371,7 +371,7 @@ Skills that decide *what to build* and *how to sequence it*, before code is writ
 - **When to enter**: Multi-step work (≥3 steps), architectural choice on the table, multiple modules touched, or scope not obvious.
 - **Methodologies**: First-Principles Derivation, Tracer-Bullet Vertical Slicing, Expand → Migrate → Contract
 - **Hard rule**: Stops after writing the plan. Waits for approval.
-- **Handoff**: `task-challenge` (for review) → `task-multi-build` or `task-yugong` (for execution). For very large multi-session work, hand off to `task-strategy` first.
+- **Next**: `task-challenge` (for review) → `task-multi-build` or `task-yugong` (for execution). For very large multi-session work, hand off to `task-strategy` first.
 - **Not for**: Work that spans multiple sessions with foggy destination (use `task-strategy`).
 
 #### `task-challenge`
@@ -383,7 +383,7 @@ Skills that decide *what to build* and *how to sequence it*, before code is writ
 - **When to enter**: A written plan exists (in chat, in a file, or produced by `task-single-plan`) and needs a rigorous critique before implementation.
 - **Methodologies**: Adversarial Review
 - **Hard rule**: No editing the plan; returns findings only. No polite hedging that hides a real defect.
-- **Handoff**: `task-single-plan` (to revise) or `task-multi-build` / `task-yugong` (to execute if approved).
+- **Next**: `task-single-plan` (to revise) or `task-multi-build` / `task-yugong` (to execute if approved).
 - **Not for**: Reviewing implemented code (that's `task-judge`).
 
 #### `task-quick-verify`
@@ -392,7 +392,7 @@ Skills that decide *what to build* and *how to sequence it*, before code is writ
 - **When to enter**: "Does this feel right?" / "What should it look like?" / "What does this state machine do in the corner cases?"
 - **Methodologies**: Dual-Branch Prototyping
 - **Hard rule**: Throwaway from day one. No tests, no polish, no persistence. Commit to a throwaway branch out of main.
-- **Handoff**: `task-single-plan` (fold validated decision into real plan) or `task-multi-build` (integrate).
+- **Next**: `task-single-plan` (fold validated decision into real plan) or `task-multi-build` (integrate).
 - **Not for**: Building production features. If it looks tempting to merge, remember the branch is throwaway.
 
 #### `task-strategy`
@@ -401,7 +401,7 @@ Skills that decide *what to build* and *how to sequence it*, before code is writ
 - **When to enter**: Work bigger than one agent session, foggy path to the destination, multiple decisions still to be made before execution can start.
 - **Methodologies**: Fog-of-War Mapping
 - **Hard rule**: Never charges at the destination. Never resolves more than one non-research ticket per session.
-- **Handoff**: `task-librarian` (research ticket), `task-quick-verify` (prototype ticket), `task-clarify` (grilling ticket), `task-single-plan` (task ticket ready for execution planning).
+- **Next**: `task-librarian` (research ticket), `task-quick-verify` (prototype ticket), `task-clarify` (grilling ticket), `task-single-plan` (task ticket ready for execution planning).
 - **Not for**: Small tasks that fit in one session. `task-strategy`'s overhead is only worth it for genuinely multi-session work.
 
 ### 2.2 Execution
@@ -414,7 +414,7 @@ Skills that write code and produce artifacts.
 - **When to enter**: Task spans multiple modules or systems, benefits from delegating sub-tasks to `task-explore` / `task-librarian` / `task-judge` / `task-multimodal-looker`.
 - **Methodologies**: TDD Discipline, Mid-Execution Checkpoint (dispatched every ~3 steps)
 - **Hard rule**: No type suppression, no empty catch blocks, no destructive git actions without user confirmation, no unsolicited refactors while doing a bug fix.
-- **Handoff**: `task-judge` (post-implementation audit).
+- **Next**: `task-judge` (post-implementation audit).
 - **Not for**: Single-scope tasks. Prefer `task-yugong`. Multi-domain coordination cost is only worth it when the work genuinely spans domains.
 
 #### `task-yugong` (default skill)
@@ -424,7 +424,7 @@ Skills that write code and produce artifacts.
 - **When to enter**: Any concrete implementation task with a clear single scope.
 - **Methodologies**: Loop Engineering, TDD Discipline
 - **Hard rule**: No delegation of the primary task. Retry up to 3 times per step. If the task turns out larger than expected, **stop and report**; never silently expand scope.
-- **Handoff**: None (terminates when done). May consult `task-checkpoint` mid-way or `task-judge` at end.
+- **Next**: None (terminates when done). May consult `task-checkpoint` mid-way or `task-judge` at end.
 - **Not for**: Multi-domain tasks that genuinely need specialist delegation (use `task-multi-build`).
 
 #### `task-general`
@@ -432,7 +432,7 @@ Skills that write code and produce artifacts.
 - **Purpose**: Coordination of mixed research and execution across unrelated systems when no specialist skill fits. Decompose and dispatch specialists; parallelize only where the host supports native subagents.
 - **When to enter**: Task mixes research and execution across several unrelated systems and no single specialized skill covers it.
 - **Hard rule**: Never swallow specialist work that belongs to `task-explore`, `task-librarian`, `task-judge`, `task-multimodal-looker`, or `task-debug`; hand off.
-- **Handoff**: Specialist skills per sub-task; return control to user with aggregated conclusion.
+- **Next**: Specialist skills per sub-task; return control to user with aggregated conclusion.
 - **Not for**: Tasks that fit a single skill. `task-general` is a fallback, not a first choice.
 
 ### 2.3 Search and Research
@@ -444,7 +444,7 @@ Skills that gather information without editing.
 - **Purpose**: Contextual grep inside this repository. Answers "where is X defined?", "which file handles Y?", cross-cutting pattern searches.
 - **When to enter**: User asks where something is defined or handled; a cross-cutting pattern search cannot be answered from memory.
 - **Hard rule**: No file edits. No speculation beyond what search results actually show. No summarizing files not opened. Stop after the first pass unless the user asks for more.
-- **Handoff**: `task-multi-build` / `task-yugong` (modify what was found) or `task-single-plan` (plan changes based on findings).
+- **Next**: `task-multi-build` / `task-yugong` (modify what was found) or `task-single-plan` (plan changes based on findings).
 - **Not for**: External research (use `task-librarian`).
 
 #### `task-librarian`
@@ -453,7 +453,7 @@ Skills that gather information without editing.
 - **When to enter**: Unfamiliar library/framework, "what's the best practice for X?", "how does OSS repo Y do this?", research that requires web or external repositories.
 - **Methodologies**: Primary-Source-Only Research
 - **Hard rule**: No unlabeled speculation. No inventing API signatures not observed in real source.
-- **Handoff**: `task-single-plan` (design integration) or `task-multi-build` (apply directly). Can run as a background agent while the parent works.
+- **Next**: `task-single-plan` (design integration) or `task-multi-build` (apply directly). Can run as a background agent while the parent works.
 - **Not for**: In-repo search (use `task-explore`).
 
 #### `task-multimodal-looker`
@@ -461,7 +461,7 @@ Skills that gather information without editing.
 - **Purpose**: Describe or extract information from images, PDFs, screenshots, and diagrams the user shared.
 - **When to enter**: User shared visual media; the parent agent needs a specific piece of information that lives inside it.
 - **Hard rule**: Answer the specific question first. Mark low-confidence readings explicitly. Never fabricate text not visible in the media. If the current tool cannot open the shared media, say so plainly.
-- **Handoff**: Whichever skill uses the extracted info.
+- **Next**: Whichever skill uses the extracted info.
 - **Not for**: Text-only inputs.
 
 #### `task-repo-analyze`
@@ -469,7 +469,7 @@ Skills that gather information without editing.
 - **Purpose**: Analyze a repository's structure, conventions, tooling, and CI configuration. Produce a structured report that downstream skills can reference.
 - **When to enter**: First time working in an unfamiliar repository, user asks "what does this repo do?", a workflow needs repo context and no existing analysis exists under `spec/repo-analyze/`.
 - **Hard rule**: Never scan without user confirmation (token-intensive). Check `spec/repo-analyze/` for existing analysis before offering to re-scan. Write only to `spec/repo-analyze/`, never modify source code. Do not fabricate information not observed in actual files.
-- **Handoff**: `task-single-plan` (plan work with repo context) or any executor.
+- **Next**: `task-single-plan` (plan work with repo context) or any executor.
 - **Not for**: Repos the user already knows well and can describe the conventions for. The skill's value is in unfamiliar territory.
 
 #### `task-distill-spec`
@@ -477,7 +477,7 @@ Skills that gather information without editing.
 - **Purpose**: Distill an overview-level project spec (glossary, core domain model, design principles, main business logic) from existing project docs into a preloadable file, so a team's AI tools share one baseline and avoid information gaps, inconsistent terminology, and design drift. A summary layer over the detailed docs, not a replacement or authority.
 - **When to enter**: A team wants a shared AI-preload baseline distilled from design / requirement docs ("蒸馏项目 spec", "生成项目 overview/术语基线"); or source docs changed and the existing distilled spec must be regenerated.
 - **Hard rule**: Compress and define only, never infer or invent design decisions. Every entry traces to a concrete source (`doc:section`); untraceable content is excluded. Docs are the primary source; conversation history contributes only already-adopted decisions (latest wins), never rejected proposals. Source conflicts are flagged, not resolved. Static snapshot: re-distill when sources change. Admission gate: project-specific + non-obvious + traceable.
-- **Handoff**: None. Produces the overview spec and terminates; the human-review note is advisory (non-blocking).
+- **Next**: None. Produces the overview spec and terminates; the human-review note is advisory (non-blocking).
 - **Not for**: Replacing detailed design docs, making or changing design decisions, or incremental/dynamic updates (re-distill on source change). Distilling from memory without source docs.
 
 #### `task-doc-write`
@@ -485,7 +485,7 @@ Skills that gather information without editing.
 - **Purpose**: Write professional documentation from code and context. Four modes (api, architecture, guide, readme) with two distinct writing styles (professional for technical reference, accessible for README and introductions).
 - **When to enter**: User asks to write documentation, README, API reference, design doc, ADR, user guide, or tutorial.
 - **Hard rule**: Never invent API signatures or behaviors not observed in actual source. Never mix styles within one document. Never leave placeholder text in output. Document the current state, not aspirational future state.
-- **Handoff**: `task-judge` (review the document) or user (direct delivery).
+- **Next**: `task-judge` (review the document) or user (direct delivery).
 - **Not for**: Repairing drift in existing documentation (use `job-align`). Writing internal specs or plans (use `task-single-plan`).
 
 ### 2.4 Review and Diagnosis
@@ -498,7 +498,7 @@ Skills that inspect work for defects, at three different points in time.
 - **When to enter**: Every ~3 steps of a multi-step plan, before any major state transition (schema migration, deployment, `git push`), or when the executor reports drift.
 - **Methodologies**: Mid-Execution Checkpoint
 - Runs during execution, not before or after. Verdict is `continue` / `adjust plan` / `halt`.
-- **Handoff**: Executor (if `continue`), `task-single-plan` (if `adjust plan`), user (if `halt`).
+- **Next**: Executor (if `continue`), `task-single-plan` (if `adjust plan`), user (if `halt`).
 - **Not for**: Pre-plan critique (use `task-challenge`) or post-implementation audit (use `task-judge`).
 
 #### `task-judge` (after execution)
@@ -510,7 +510,7 @@ Skills that inspect work for defects, at three different points in time.
   - **Standards**: does the code follow this repo's coding standards + the Fowler smell baseline?
   - **Spec**: does the code match what the originating issue / PRD asked for?
 - **Hard rule**: No file edits. No vague "you could consider…" without a concrete recommendation. Never merge findings across axes; one axis can pass while the other fails.
-- **Handoff**: `task-multi-build` / `task-yugong` (apply fixes) or user (architectural approval).
+- **Next**: `task-multi-build` / `task-yugong` (apply fixes) or user (architectural approval).
 - **Not for**: In-progress work (use `task-checkpoint`).
 
 #### `task-debug` (hard bug)
@@ -519,8 +519,17 @@ Skills that inspect work for defects, at three different points in time.
 - **When to enter**: Hard bug or perf regression that resisted a first fix, "sometimes fails" flakiness, chain of symptoms with no obvious cause, before a second fix attempt on a bug the executor cannot pin down.
 - **Methodologies**: Six-Phase Evidence-First Loop, SHA1 Debug Session Prefix and Record File
 - **Hard rule**: No jumping to hypotheses without a red-capable loop. No shotgun debugging. No debug logs without a SHA1-prefixed tag. No declaring done without re-running the original repro.
-- **Handoff**: `task-multi-build` / `task-yugong` (apply fix) or `task-judge` (if root cause is architectural).
+- **Next**: `task-multi-build` / `task-yugong` (apply fix) or `task-judge` (if root cause is architectural).
 - **Not for**: Bugs that a straightforward first fix will resolve; `task-debug` is for the hard ones.
+
+#### `task-why-how-what`
+
+- **Purpose**: One grounded pass from a single vantage. Given one starting point — the raw problem, or a SCAMPER-transformed angle on an existing solution — reason it through the Golden Circle (Why → How → What) anchored in first principles, and produce one result from that single vantage.
+- **When to enter**: Dispatched by `job-scamper` as round 0 (starting point = the raw problem) or as one angle of a later round; or directly for a single Golden-Circle / first-principles pass.
+- **Methodologies**: Golden Circle (Sinek: Why → How → What); First-Principles Derivation. Reason from root purpose and irreducible constraints, never from analogy or the shape of the artifact.
+- **Hard rule**: One vantage per invocation; do not blend angles. Reason Why → How → What in that order, never back-fill a Why from a What. First principles, not analogy. No cross-result ranking — that judgment belongs to the caller.
+- **Next**: None. Returns one vantage's result; `job-scamper` aggregates and judges.
+- **Not for**: Picking the best among several results (that is `job-scamper`); reasoning many angles in one pass.
 
 ---
 
@@ -534,7 +543,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 - **When to enter**: Request is ambiguous, ≥ 2 steps, involves architectural choice, or user says "plan first" / "先做个计划".
 - **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: Never skip `task-clarify` for ambiguous requests. Never proceed past step 6 (user approval) without explicit OK. Never write to `spec/<slug>/` before approval. Never fabricate optional artifacts (design/guide/README) at write time if their section was not produced in step 3.
-- **Handoff**: `job-build` (once persisted; executor reads `spec/<slug>/plan.md` from disk).
+- **Next**: `job-build` (once persisted; executor reads `spec/<slug>/plan.md` from disk).
 - **Not for**: Single-step tasks (route directly to `task-yugong` or the specific skill).
 
 #### `job-build`
@@ -543,7 +552,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 - **When to enter**: A plan already exists (approved via `job-plan` or provided by user); user says "implement" / "execute" / "落实".
 - **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: Never continue past a `halt` checkpoint verdict without user reset. Never silently expand scope; stop and report if the task turns out larger. Never skip the checkpoint after a major state transition.
-- **Handoff**: `job-review` (once all planned steps complete).
+- **Next**: `job-review` (once all planned steps complete).
 - **Not for**: Un-planned improvisation (go through `job-plan` first).
 
 #### `job-verify`
@@ -552,7 +561,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 - **When to enter**: Mid-execution "check progress", executor drift, or automatic dispatch by `job-build` every ~3 steps.
 - **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: Never run post-completion review here. Never edit files inside this workflow.
-- **Handoff**: Executor (`task-yugong` / `task-multi-build`) if `continue`; `job-plan` if `adjust plan`; user if `halt`.
+- **Next**: Executor (`task-yugong` / `task-multi-build`) if `continue`; `job-plan` if `adjust plan`; user if `halt`.
 - **Not for**: Completed-work review (use `job-review`).
 
 #### `job-debug`
@@ -561,7 +570,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 - **When to enter**: User reports a bug, test failure, or unexpected behavior; first attempt.
 - **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: Never skip Phase 1 (feedback loop); no hypothesis before red-capable repro. Never apply a fix without a regression test written first. Never continue past Phase 3 if the bug is hard; escalate. Never `sleep()`-cover a race.
-- **Handoff**: `task-yugong` (apply straightforward fix); `job-debug-deep` (escalate on hard bug).
+- **Next**: `task-yugong` (apply straightforward fix); `job-debug-deep` (escalate on hard bug).
 - **Not for**: Bugs already resisting a first fix (go direct to `job-debug-deep`).
 
 #### `job-align`
@@ -570,7 +579,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 - **When to enter**: "docs are out of date" / "align docs" / "文档和代码不一致" / large feature landed and doc drift accumulated.
 - **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: Never edit spec/PRD intent documents without explicit user OK. Never use bulk text diff to apply changes; item-by-item preserves semantics.
-- **Handoff**: None (workflow terminates on clean re-scan).
+- **Next**: None (workflow terminates on clean re-scan).
 - **Not for**: Writing new documentation from scratch (that's a normal implementation task).
 
 #### `job-review`
@@ -579,7 +588,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 - **When to enter**: Before declaring any significant task done; before opening or merging a PR; before releasing a feature branch; after an executor session reports completion.
 - **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: Standards and Spec axes kept separately attributed and never merged. No `APPROVED` verdict if any `[blocker]` remains. Do not "quickly fix" findings inside this workflow.
-- **Handoff**: `task-multi-build` or `task-yugong` to apply the `[blocker]` and `[should-fix]` items.
+- **Next**: `task-multi-build` or `task-yugong` to apply the `[blocker]` and `[should-fix]` items.
 - **Not for**: In-progress checks (`task-checkpoint` runs during execution; this runs after).
 
 #### `job-pr-maintain`
@@ -589,7 +598,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 - **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Boundary**: This workflow owns GitHub API interactions (read comments, update description, reply to threads). It does not own local git operations (diff, commit, branch, push), which remain under AGENTS.md section 3.8 and the executing skill's responsibility.
 - **Dispatch rule**: The review is done from scratch each round; auto-tool fix markers and "resolved" flags are never read or verified. GitHub write operations require explicit user authorization AND user confirmation of the review results. If the review finds no issues and no human comment needs a reply, nothing is posted. Never push code from this workflow; pushing is an executor action under AGENTS.md 3.6.
-- **Handoff**: `job-security-review` (when the diff touches security surface). User (to confirm review results, authorize GitHub writes, and push).
+- **Next**: `job-security-review` (when the diff touches security surface). User (to confirm review results, authorize GitHub writes, and push).
 - **Not for**: Creating new PRs from scratch (that is an executor action with push + pr-open authorization). Pre-completion code review without a PR (use `job-review`).
 
 #### `job-security-review`
@@ -598,7 +607,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 - **When to enter**: Before shipping code with security surface (auth, session, crypto, secret/token handling, input validation, deserialization); before opening a PR that touches security-sensitive code; on a periodic per-release cadence; when a security-relevant bug's exploit surface needs charting before the fix.
 - **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: Sub-agent findings preserved by source and never merged or re-ranked. `[blocker]` requires a concrete named failure mode. Verdict is one line, `APPROVED` / `CHANGES-REQUESTED` / `BLOCKED`.
-- **Handoff**: `task-multi-build` or `task-yugong` to apply the `[blocker]` and `[should-fix]` items.
+- **Next**: `task-multi-build` or `task-yugong` to apply the `[blocker]` and `[should-fix]` items.
 - **Not for**: Non-security correctness review (use `job-review`).
 
 #### `job-debug-deep`
@@ -607,7 +616,7 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 - **When to enter**: Hard bug or perf regression that resisted a first fix; "sometimes fails" flakiness; chain of symptoms with no obvious cause; before a second fix attempt on a bug the executor cannot pin down.
 - **Chain reference**: the capability's `SKILL.md` (authoritative chain)
 - **Dispatch rule**: No jumping to hypotheses without a red-capable feedback loop. No debug log without a SHA1-prefixed tag and matching `spec/debug/<sha1_short>.md` record. Regression test written at a correct seam **before** the fix. Never `sleep()`-cover a race; never skip Phase 6 cleanup.
-- **Handoff**: `task-yugong` (single-scope fix) or `task-multi-build` (multi-module fix); optional final `task-judge` audit on the fix diff.
+- **Next**: `task-yugong` (single-scope fix) or `task-multi-build` (multi-module fix); optional final `task-judge` audit on the fix diff.
 - **Not for**: A first-attempt fix on a straightforward bug (that goes to `job-debug` or `task-yugong` directly).
 
 #### `job-spiral-up`
@@ -618,6 +627,15 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 - **Dispatch rule**: Never dispatches `task-yugong`, `task-multi-build`, `task-clarify`, `job-plan`, `job-build`, `job-review`, or `job-security-review`. Executes plan steps inline. On basket failure, requires a materially different next attempt to retry; otherwise records a stuck-point fix item. Fix items handled LIFO. Stall triggers symmetric re-planning.
 - **Terminal states**: `Done` only. Reached when all plan steps are done and no unresolved fix items remain. The worktree branch is left for the user to merge or discard.
 - **Not for**: Ambiguous requests, cross-session recovery, or plans that require irreversible shared-impact actions (those should be rejected by `task-challenge` during planning).
+
+#### `job-scamper`
+
+- **Purpose**: Multi-angle solution builder. Produces an initial solution, then loops — SCAMPER-decompose the current solution across seven angles, discard the unreasonable and the already-seen, dispatch `task-why-how-what` per surviving angle, then re-evaluate the optimum by Pareto focus plus logical self-consistency — until a round yields no new reasonable angle. Aims at a comprehensive solution, not fault-finding.
+- **When to enter**: User wants a solution, plan, design, or decision developed through systematic multi-angle analysis into a comprehensive whole. General domains, not only code.
+- **Chain reference**: the capability's `SKILL.md` (authoritative chain)
+- **Dispatch rule**: Each vantage runs as its own isolated `task-why-how-what`; vantages are file-separated so they do not see each other's reasoning. The orchestrator never reasons a vantage itself — it generates the seven SCAMPER angles, applies two filters (reasonableness, novelty), dispatches surviving angles, and judges by Pareto + self-consistency. Never dispatch an unreasonable angle just to fill the seven. Termination is "a round produces no new reasonable angle" — the finite, monotonically-consumed angle space bounds it.
+- **Next**: None. Returns the comprehensive solution and its round-by-round evolution.
+- **Not for**: A single one-vantage pass (use `task-why-how-what`); adversarial fault-finding on an existing answer.
 
 ---
 

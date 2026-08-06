@@ -61,6 +61,6 @@ Terminal (2 modes):
 - `Done`: all baskets `[ok]` and the task-level verification predicate passed
 - `Quit: <reason>`: unable to articulate a materially different next attempt for at least one basket; reason names the specific cause (e.g., `retry-exhausted: no material difference available`, `no-progress: same file set without new hypothesis`, `scope-too-big: requires decomposition`, `external-dependency: <what's missing>`, `authorization: <what needs approval>`)
 
-## Handoff
+## Next
 
-None. Skill terminates. Caller consumes the `Done` / `Quit` signal.
+Terminal — return the `Done` / `Quit` signal to the caller.

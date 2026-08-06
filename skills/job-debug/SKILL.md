@@ -75,7 +75,7 @@ Do **not** enter for:
 <Phase 1 loop rerun result>
 ```
 
-## Handoff
+## Next
 
 - `task-yugong` (apply the fix if straightforward)
 - `job-debug-deep` (escalate if hard)

@@ -36,7 +36,7 @@ Optional argument `<bug-description>` is a short description of the symptom (e.g
    - **Optional parallel skill: `task-librarian`** if any hypothesis depends on external knowledge (library internals, protocol spec, framework quirk); primary sources only, cited.
 4. **`task-debug`**: Phase 4, produce the instrumentation plan. Debugger/REPL first, targeted logs second. Name the SHA1 session, redacted `spec/debug/<sha1_short>.md` content, tagged log lines, and the one variable to change.
    - **Optional escalation skill: `task-judge`** if instrumentation reveals the root cause is architectural (shared mutable state used pervasively, wrong layering, spec ambiguity); the fix scope is then set by the audit before any code change.
-5. **Handoff for Phase 5** (instrumentation + fix + regression test). The executor first persists the full diagnostic and instrumentation plan to `spec/debug/<sha1_short>.md`, writes only redacted values, and writes the regression test at a correct seam **before** the fix. The handoff prompt includes the artifact path. Hand off:
+5. **Dispatch for Phase 5** (instrumentation + fix + regression test). The executor first persists the full diagnostic and instrumentation plan to `spec/debug/<sha1_short>.md`, writes only redacted values, and writes the regression test at a correct seam **before** the fix. The dispatch prompt includes the artifact path. Continue to:
    - Single-scope fix → `task-yugong`
    - Multi-module fix → `task-multi-build`
 6. Invoke **`task-debug`** for Phase 6, cleanup + post-mortem. Verify all of:
@@ -51,7 +51,7 @@ Optional argument `<bug-description>` is a short description of the symptom (e.g
 
 - Never jump to hypotheses without a red-capable feedback loop.
 - Never proceed past Phase 3 without showing the ranked hypotheses to the user.
-- Never let Phase 5 handoff apply a fix without a regression test written first.
+- Never let the Phase 5 dispatch apply a fix without a regression test written first.
 - Never `sleep()`-cover a race; that re-opens the bug later.
 - Never skip Phase 6 cleanup.
 - Three-strike rule: 3rd fix of same root cause (grep git log) → structural change or Proposed architectural decision.
@@ -86,6 +86,6 @@ Optional argument `<bug-description>` is a short description of the symptom (e.g
 [ok] Correct hypothesis for commit/PR message: <one line>
 ```
 
-## Handoff
+## Next
 
 Phase 5, `task-yugong` (single-scope) or `task-multi-build` (multi-module). Optional Phase 6, `task-judge` for post-fix audit.

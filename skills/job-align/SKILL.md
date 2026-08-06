@@ -75,6 +75,6 @@ handoffs:
 
 ```
 
-## Handoff
+## Next
 
-None (workflow terminates on clean re-scan).
+Terminal — the workflow ends on a clean re-scan; return control to the caller.

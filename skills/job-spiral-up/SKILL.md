@@ -95,6 +95,6 @@ Stop. Worktree at `../<slug>-spiral` on branch `spiral/<slug>` is left for the u
 - Never dispatch `task-yugong` / `task-multi-build` / `task-clarify` / `job-plan` / `job-build` / `job-review` / `job-security-review`.
 - Requires the current directory to be a git repository (worktree creation is mandatory).
 
-## Handoff
+## Next
 
-None.
+Terminal — the autonomous run ends; the worktree branch is left for the user to merge or discard.

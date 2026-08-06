@@ -58,6 +58,6 @@ The request the user typed is one candidate solution; the underlying problem is 
 
 ```
 
-## Handoff
+## Next
 
-User answers the clarifying question, then hand off to `task-single-plan`.
+User answers the clarifying question, then continue to `task-single-plan`.

@@ -29,7 +29,7 @@ handoffs:
    - `continue` → executor resumes
    - `adjust plan` → return to `job-plan` step 3 (revise plan)
    - `halt` → stop and report to user; do not proceed
-7. On executor completion → handoff to `job-review` for the pre-completion audit.
+7. On executor completion → continue to `job-review` for the pre-completion audit.
 
 ## Dispatch rules
 
@@ -54,6 +54,6 @@ handoffs:
 <yes if all steps done, no if any halt/adjust>
 ```
 
-## Handoff
+## Next
 
 `job-review` (once all planned steps complete).

@@ -47,7 +47,7 @@ Completed work goes to `job-review` for Standards + Spec review and the leftover
 
 ```
 
-## Handoff
+## Next
 
 - Executor (`task-yugong` / `task-multi-build`) if `continue`
 - `job-plan` if `adjust plan`

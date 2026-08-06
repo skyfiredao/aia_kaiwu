@@ -89,6 +89,6 @@ Token-intensive: reads directory trees, CI configs, package manifests, linter co
 - Analysis file: spec/repo-analyze/<repo-name>.md
 ```
 
-## Handoff
+## Next
 
 `task-single-plan` (plan work with repo context), or any executor (carry repo context into implementation).

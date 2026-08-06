@@ -66,7 +66,7 @@ Posting to GitHub also requires the user to confirm the review results (step 10)
    Once identified, read PR metadata: title, description, base branch, head branch, review status.
 2. **Read human reviewer comments.** Fetch pending review comments and conversation threads left by **human reviewers**. Group by file and thread. Ignore auto-generated tool markers (Copilot auto-review, bot suggestions, any "resolved / fixed / addressed" markers) — they are not read and not verified.
 3. **Read the local diff.** Run `git diff <base>...<head>` locally to understand the current state. This is a read action for context.
-4. **Fresh first-principles review.** Dispatch `task-judge` on the current diff (Standards + Spec axes). This review is done from scratch every round; it does not trace, trust, or verify any prior tool marker or prior fix. Findings are the genuine issues present in the current code only. If the diff touches security surface, hand off to `job-security-review`.
+4. **Fresh first-principles review.** Dispatch `task-judge` on the current diff (Standards + Spec axes). This review is done from scratch every round; it does not trace, trust, or verify any prior tool marker or prior fix. Findings are the genuine issues present in the current code only. If the diff touches security surface, continue to `job-security-review`.
 5. **Classify human reviewer comments.** For each human comment or thread:
    - `[actionable]`: clear fix needed. Specify the concrete change.
    - `[discussion]`: needs clarification or technical pushback. Draft a response.
@@ -164,6 +164,6 @@ Posting to GitHub also requires the user to confirm the review results (step 10)
 - [ ] Push commits (requires push authorization per AGENTS.md 3.6)
 ```
 
-## Handoff
+## Next
 
 `job-security-review` (when the diff touches security surface). User (to confirm review results, authorize GitHub writes, and push).

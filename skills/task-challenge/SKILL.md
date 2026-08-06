@@ -63,6 +63,6 @@ Read the plan as a hostile junior engineer would execute it: assume every step w
 
 ```
 
-## Handoff
+## Next
 
 `task-single-plan` (to revise) if `needs-revision`, or `task-multi-build` / `task-yugong` (to execute) if `approve`.

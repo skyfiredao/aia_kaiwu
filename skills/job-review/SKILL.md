@@ -33,7 +33,7 @@ Optional argument `[scope]` accepts `diff-since:<git-ref>` (default is current b
    - Spec axis: code matches what the originating issue/PRD/plan asked for.
 3. **`task-explore`** scans the diff for unresolved flakiness signatures, unreverted debug scaffolding, silent catch blocks, `sleep()` covering races, disabled tests, `TODO`, `FIXME`, `XXX`, `HACK`, unattributed `console.log`, `[DEBUG-` remnants, commented-out code, and dead imports.
 4. **Aggregate** into severity buckets: `[blocker]` / `[should-fix]` / `[nice-to-have]`. Preserve source attribution.
-5. If fixes are required, ask the parent or a writable workflow to persist the report under `spec/review/<sha_short>.md`, then include that path in the executor handoff.
+5. If fixes are required, ask the parent or a writable workflow to persist the report under `spec/review/<sha_short>.md`, then include that path in the executor dispatch.
 
 ## Dispatch rules
 
@@ -77,6 +77,6 @@ Optional argument `[scope]` accepts `diff-since:<git-ref>` (default is current b
 
 ```
 
-## Handoff
+## Next
 
-`task-multi-build` or `task-yugong` to apply the `[blocker]` and `[should-fix]` items.
+Next step — apply the `[blocker]` and `[should-fix]` items (via `task-yugong` single-scope or `task-multi-build` multi-module). Applying the fixes continues this flow; it is not a stop.

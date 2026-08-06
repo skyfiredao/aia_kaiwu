@@ -91,6 +91,6 @@ No fixed line / token cap. Size is controlled by:
 - Foreground, single pass. The human-review note is output, not a blocking gate.
 - Never distill from memory; if no source docs exist, stop and say so.
 
-## Handoff
+## Next
 
-None. Produces the overview spec and terminates. The human-review note is advisory.
+Terminal — produce the overview spec and return to the caller. The human-review note is advisory.

@@ -45,6 +45,6 @@ handoffs:
 - …
 ```
 
-## Handoff
+## Next
 
-After significant work, hand off to `@task-judge` for post-implementation review.
+After significant work, continue to `@task-judge` for post-implementation review.

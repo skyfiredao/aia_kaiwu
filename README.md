@@ -49,7 +49,9 @@ The full design walkthrough is in [`INTRODUCTION.md`](INTRODUCTION.md), under "D
 │   ├── task-strategy/
 │   ├── task-yugong/
 │   ├── task-repo-analyze/
+│   ├── task-distill-spec/
 │   ├── task-doc-write/
+│   ├── task-why-how-what/
 │   ├── job-plan/
 │   ├── job-build/
 │   ├── job-verify/
@@ -59,7 +61,8 @@ The full design walkthrough is in [`INTRODUCTION.md`](INTRODUCTION.md), under "D
 │   ├── job-pr-maintain/
 │   ├── job-security-review/
 │   ├── job-debug-deep/
-│   └── job-spiral-up/
+│   ├── job-spiral-up/
+│   └── job-scamper/
 ├── .opencode/
 │   └── skills/                            ← symlinks → ../../skills/<slug>/
 ├── .claude/
@@ -428,6 +431,7 @@ Full behavior contract for each capability lives in [`skills/<slug>/SKILL.md`](s
 | [`task-doc-write`](skills/task-doc-write/SKILL.md) | Write documentation in four modes (api, architecture, guide, readme) with professional or accessible style. |
 | [`task-judge`](skills/task-judge/SKILL.md) | Two-axis audit (Standards + Spec, kept separate). |
 | [`task-debug`](skills/task-debug/SKILL.md) | Six-phase evidence-first hard-bug diagnosis loop. |
+| [`task-why-how-what`](skills/task-why-how-what/SKILL.md) | One grounded pass from a single vantage: reason a starting point through the Golden Circle (Why→How→What) anchored in first principles, produce one result, no cross-result verdict. Domain-general. |
 
 **Workflows** (`job-*`, chain atomic skills):
 
@@ -443,6 +447,7 @@ Full behavior contract for each capability lives in [`skills/<slug>/SKILL.md`](s
 | [`job-security-review`](skills/job-security-review/SKILL.md) | End-to-end security audit chain (locate → judge + librarian → optional debug). |
 | [`job-debug-deep`](skills/job-debug-deep/SKILL.md) | Six-phase hard-bug diagnosis end-to-end. |
 | [`job-spiral-up`](skills/job-spiral-up/SKILL.md) | Single-session autonomous convergence for "loop until done", "keep going until complete", and equivalent requests; execution remains bounded. |
+| [`job-scamper`](skills/job-scamper/SKILL.md) | Multi-angle solution builder: initial solution → SCAMPER-decompose across seven angles (discard unreasonable/seen) → dispatch task-why-how-what per angle → re-evaluate optimum by Pareto + logical self-consistency → until no new reasonable angle. Comprehensive, not fault-finding. |
 
 ## License
 

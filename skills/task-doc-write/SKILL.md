@@ -194,6 +194,6 @@ handoffs:
 - No motivational filler ("Let's dive in!", "Happy coding!", "You're all set!").
 - Logical structure. Each section has one topic. Sections flow in the order the reader needs them. Within a section, general before specific, cause before effect.
 
-## Handoff
+## Next
 
 `task-judge` (review the document) or user (direct delivery).

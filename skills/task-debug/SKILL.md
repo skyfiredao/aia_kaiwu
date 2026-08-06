@@ -30,7 +30,7 @@ handoffs:
 3. **Phase 3, hypothesise.** Generate **3-5 ranked hypotheses** before testing any. Each must be **falsifiable**: "if X is the cause, then changing Y makes the bug disappear". Show the ranked list to the user; they often re-rank instantly with domain knowledge.
 4. **Phase 4, instrument.** Debugger / REPL first. If file changes are required, output an instrumentation plan for the writable workflow or executor. The plan names a SHA1 session tag, `spec/debug/<sha1_short>.md`, targeted `[DEBUG-<sha1_short>]` log lines, and one variable to change at a time. For perf, specify the baseline and bisection method.
 5. **Phase 5, fix + regression test.** Specify the regression test and minimal fix at a correct seam, then hand them to `task-yugong` or `task-multi-build`. The executor writes the failing test before the fix. If no correct seam exists, report an architectural finding instead of proposing a shallow test.
-6. **Phase 6, cleanup + post-mortem.** After the executor finishes, re-read the evidence. Confirm the original repro no longer reproduces, the regression test passes, all `[DEBUG-<sha1_short>]` instrumentation is gone, and `spec/debug/<sha1_short>.md` is either curated or deleted. State the correct hypothesis for the commit / PR message.
+6. **Phase 6, cleanup + post-mortem.** After the executor finishes, re-read the evidence. Confirm the original repro no longer reproduces, the regression test passes, all `[DEBUG-<sha1_short>]` instrumentation is gone, and `spec/debug/<sha1_short>.md` is either curated or deleted. State the correct hypothesis for the commit / PR message. Attribute the root cause to the lowest durable layer — a one-off mistake, a systematic tooling/config gap, or a missing rule/doc — and fix it there so the failure mode cannot recur: patch the instance for a one-off, fix the tool/config for a systematic gap, update the doc/skill/spec for a missing rule. State which layer and what you wrote back.
 
 ## Hard constraints
 
@@ -64,6 +64,6 @@ handoffs:
 
 ```
 
-## Handoff
+## Next
 
-`task-multi-build` or `task-yugong` (for the fix), or `task-judge` if root cause is architectural.
+Next step — apply the fix (via `task-multi-build` or `task-yugong`), or route to `task-judge` if the root cause is architectural.

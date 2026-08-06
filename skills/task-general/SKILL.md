@@ -34,7 +34,7 @@ Own the sequencing and aggregation; hand code writes off to `task-multi-build` (
 
 ## Hard constraints
 
-- Do not swallow specialist work that belongs to `task-explore`, `task-librarian`, `task-judge`, `task-multimodal-looker`, or `task-debug`; hand off.
+- Do not swallow specialist work that belongs to `task-explore`, `task-librarian`, `task-judge`, `task-multimodal-looker`, or `task-debug`; route it to that specialist.
 - Do not perform multi-module code writes yourself; that work belongs to `task-multi-build`.
 - Do not conflate sub-tasks; solve them one at a time in the announced order.
 
@@ -58,6 +58,6 @@ Own the sequencing and aggregation; hand code writes off to `task-multi-build` (
 
 ```
 
-## Handoff
+## Next
 
 Specialist skills per sub-task; return control to user with aggregated conclusion.

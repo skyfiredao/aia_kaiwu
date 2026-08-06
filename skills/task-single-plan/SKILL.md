@@ -96,6 +96,6 @@ If any artifact above is marked `yes`, emit the corresponding section below the 
 
 ```
 
-## Handoff
+## Next
 
-`task-challenge` (for review) → `task-multi-build` or `task-yugong` (for execution). For very large multi-session work that resists a single plan, hand off to `task-strategy` first to chart a map of decision tickets.
+`task-challenge` (for review) → `task-multi-build` or `task-yugong` (for execution). For very large multi-session work that resists a single plan, route to `task-strategy` first to chart a map of decision tickets.

@@ -38,7 +38,7 @@ Optional argument `[scope]` accepts `whole` (default), `diff-since:<git-ref>`, o
    - `task-librarian`: primary-source-only research on current best practice for any library/algorithm the code uses (bcrypt cost factor, JWT library recommendations, SSL/TLS config, framework auth idioms).
 3. **Optional escalation to `task-debug`**: only when a specific finding's exact exploit path is unclear. Not on every finding.
 4. **Aggregate** into severity buckets: `[blocker]` / `[should-fix]` / `[nice-to-have]`. Preserve source attribution; do not re-rank across sub-agents.
-5. If fixes are required, ask the parent or a writable workflow to persist the audit under `spec/security/<sha_short>.md`, then include that path in the executor handoff.
+5. If fixes are required, ask the parent or a writable workflow to persist the audit under `spec/security/<sha_short>.md`, then include that path in the executor dispatch.
 
 ## Dispatch rules
 
@@ -79,6 +79,6 @@ Optional argument `[scope]` accepts `whole` (default), `diff-since:<git-ref>`, o
 
 ```
 
-## Handoff
+## Next
 
-`task-multi-build` or `task-yugong` to apply the `[blocker]` and `[should-fix]` items.
+Next step — apply the `[blocker]` and `[should-fix]` items (via `task-yugong` single-scope or `task-multi-build` multi-module). Applying the fixes continues this flow; it is not a stop.

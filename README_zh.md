@@ -49,7 +49,9 @@ English version: [README.md](README.md)。
 │   ├── task-strategy/
 │   ├── task-yugong/
 │   ├── task-repo-analyze/
+│   ├── task-distill-spec/
 │   ├── task-doc-write/
+│   ├── task-why-how-what/
 │   ├── job-plan/
 │   ├── job-build/
 │   ├── job-verify/
@@ -59,7 +61,8 @@ English version: [README.md](README.md)。
 │   ├── job-pr-maintain/
 │   ├── job-security-review/
 │   ├── job-debug-deep/
-│   └── job-spiral-up/
+│   ├── job-spiral-up/
+│   └── job-scamper/
 ├── .opencode/
 │   └── skills/                            ← 软链接 → ../../skills/<slug>/
 ├── .claude/
@@ -425,6 +428,7 @@ Reference: <https://code.visualstudio.com/docs/agents/reference/ai-settings>
 | [`task-doc-write`](skills/task-doc-write/SKILL.md) | 四种模式（api、architecture、guide、readme）撰写专业文档，区分专业和科普两种风格。 |
 | [`task-judge`](skills/task-judge/SKILL.md) | 双轴审查（Standards + Spec，两轴独立不合并）。 |
 | [`task-debug`](skills/task-debug/SKILL.md) | 六阶段证据优先硬 bug 诊断回路。 |
+| [`task-why-how-what`](skills/task-why-how-what/SKILL.md) | 单一视角的一次接地推演：把一个起点用黄金圈（Why→How→What）+ 第一性原理想透，产出一份结果，不做跨结果裁决。领域通用。 |
 
 **工作流**（`job-*`，串接原子技能）：
 
@@ -440,6 +444,7 @@ Reference: <https://code.visualstudio.com/docs/agents/reference/ai-settings>
 | [`job-security-review`](skills/job-security-review/SKILL.md) | 端到端安全审计链（locate → judge + librarian → 可选 debug）。 |
 | [`job-debug-deep`](skills/job-debug-deep/SKILL.md) | 端到端六阶段硬 bug 诊断。 |
 | [`job-spiral-up`](skills/job-spiral-up/SKILL.md) | 响应"循环直到结束""一直到结束""不要停，直到完成""无限循环"等表达；单会话内自主跑到 `Done`。 |
+| [`job-scamper`](skills/job-scamper/SKILL.md) | 多角度方案构建：初始方案 → SCAMPER 七角度拆解（舍弃不合理/重复）→ 每角度派 task-why-how-what → 用二八 + 逻辑自洽重估最优 → 直到无新合理角度。追求全面，不是找茬。 |
 
 ## 许可证
 

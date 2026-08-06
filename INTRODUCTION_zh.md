@@ -356,7 +356,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **何时进入**：请求模糊、比一轮能处理的要大、或者藏着用户自己没注意到的矛盾。
 - **方法论**：第一性原理分解
 - **硬规则**：未获用户批准不推进。不出计划。不动实现。
-- **Handoff**：`task-single-plan`（用户澄清后）
+- **Next**：`task-single-plan`（用户澄清后）
 - **不用于**：已经精确的请求。直接跳过去 `task-single-plan` 浪费一轮。
 
 #### `task-single-plan`
@@ -365,7 +365,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **何时进入**：多步工作（≥3 步）、有架构选择、跨多个模块、scope 不明显。
 - **方法论**：第一性原理推导、端到端垂直切片、扩展 → 迁移 → 收缩
 - **硬规则**：写完计划就停。等审批。
-- **Handoff**：`task-challenge`（评审）→ `task-multi-build` 或 `task-yugong`（执行）。极大的跨会话工作先交给 `task-strategy`。
+- **Next**：`task-challenge`（评审）→ `task-multi-build` 或 `task-yugong`（执行）。极大的跨会话工作先交给 `task-strategy`。
 - **不用于**：跨多次会话、目的地模糊的工作（用 `task-strategy`）。
 
 #### `task-challenge`
@@ -377,7 +377,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **何时进入**：书面计划存在（聊天里、文件里、或 `task-single-plan` 产出）需要严格评审再进入实现。
 - **方法论**：对抗式审查
 - **硬规则**：不改计划自己；只返回 findings。不做掩盖真缺陷的客套模糊。
-- **Handoff**：`task-single-plan`（修订）或 `task-multi-build` / `task-yugong`（批准后执行）。
+- **Next**：`task-single-plan`（修订）或 `task-multi-build` / `task-yugong`（批准后执行）。
 - **不用于**：评审实现好的代码（那是 `task-judge`）。
 
 #### `task-quick-verify`
@@ -386,7 +386,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **何时进入**："这样感觉对吗？" / "该长什么样？" / "这个状态机在边界情况到底怎么走？"
 - **方法论**：双分支原型法
 - **硬规则**：第一天就是一次性的。无测试、无打磨、无持久化。commit 到废弃分支不进 main。
-- **Handoff**：`task-single-plan`（把验证的决定 fold 进真计划）或 `task-multi-build`（集成）。
+- **Next**：`task-single-plan`（把验证的决定 fold 进真计划）或 `task-multi-build`（集成）。
 - **不用于**：建生产功能。看起来忍不住合并进 main 时，记住这个分支是废弃的。
 
 #### `task-strategy`
@@ -395,7 +395,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **何时进入**：工作大到装不进单次 agent session、通往目的地路径模糊、执行前还有多个决策待决。
 - **方法论**：战争迷雾制图
 - **硬规则**：绝不冲向目的地。每次会话解不超过一张非 research 票据。
-- **Handoff**：`task-librarian`（research 票）、`task-quick-verify`（prototype 票）、`task-clarify`（grilling 票）、`task-single-plan`（task 票准备好执行规划时）。
+- **Next**：`task-librarian`（research 票）、`task-quick-verify`（prototype 票）、`task-clarify`（grilling 票）、`task-single-plan`（task 票准备好执行规划时）。
 - **不用于**：能装进一次会话的小任务。`task-strategy` 的开销只在真正的多会话工作里值得。
 
 ### 2.2 执行
@@ -408,7 +408,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **何时进入**：任务跨多个模块或系统，能从委派 `task-explore` / `task-librarian` / `task-judge` / `task-multimodal-looker` 中受益。
 - **方法论**：TDD 纪律、执行中检查点（每 ~3 步派）
 - **硬规则**：不做类型抑制、不吞异常、不做未确认的破坏性 git 动作、不做 bug 修复过程中未请求的重构。
-- **Handoff**：`task-judge`（实现后审计）。
+- **Next**：`task-judge`（实现后审计）。
 - **不用于**：单一 scope 任务。用 `task-yugong`。多域协调成本只在工作真正跨域时值得。
 
 #### `task-yugong`（愚公，默认技能）
@@ -418,7 +418,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **何时进入**：任何单一 scope 的具体实现任务。
 - **方法论**：循环工程、TDD 纪律
 - **硬规则**：主任务不委派。每步最多重试 3 次。任务比预期大就**停下汇报**；绝不悄悄扩张。
-- **Handoff**：无（结束就完）。中途可咨询 `task-checkpoint`，结尾可咨询 `task-judge`。
+- **Next**：无（结束就完）。中途可咨询 `task-checkpoint`，结尾可咨询 `task-judge`。
 - **不用于**：真正需要专家委派的多域任务（用 `task-multi-build`）。
 
 #### `task-general`
@@ -426,7 +426,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **目的**：跨不相关系统的混合任务协调器，没有专家技能覆盖时的兜底。拆解并派发专家；只有宿主支持原生 subagent 时才并行。
 - **何时进入**：任务混合研究和执行，跨几个不相关系统，没有单一专家技能能覆盖。
 - **硬规则**：不吞属于 `task-explore`、`task-librarian`、`task-judge`、`task-multimodal-looker` 或 `task-debug` 的专家活；交给他们。
-- **Handoff**：各子任务对应的专家技能；聚合结论后交回用户。
+- **Next**：各子任务对应的专家技能；聚合结论后交回用户。
 - **不用于**：能装进单一技能的任务。`task-general` 是兜底，不是首选。
 
 ### 2.3 搜索与研究
@@ -438,7 +438,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **目的**：本仓库内的上下文 grep。回答"X 在哪定义？"、"哪个文件处理 Y？"、跨切面模式搜索。
 - **何时进入**：用户问某物在哪定义、哪个文件处理什么；无法从内存回答的跨切面模式搜索。
 - **硬规则**：不改文件。不做超出搜索结果的推测。不概述没打开的文件。第一遍搜索完就停，除非用户要求继续。
-- **Handoff**：`task-multi-build` / `task-yugong`（修改找到的东西）或 `task-single-plan`（基于发现制定计划）。
+- **Next**：`task-multi-build` / `task-yugong`（修改找到的东西）或 `task-single-plan`（基于发现制定计划）。
 - **不用于**：外部研究（用 `task-librarian`）。
 
 #### `task-librarian`
@@ -447,7 +447,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **何时进入**：不熟悉的库/框架、"X 的最佳实践是什么？"、"OSS Y 怎么做这个？"、需要 web 或外部 repo 的研究。
 - **方法论**：第一手来源研究
 - **硬规则**：不做无标注推测。不发明真实源码里没有的 API 签名。
-- **Handoff**：`task-single-plan`（设计集成）或 `task-multi-build`（直接应用）。可以作为 background agent 派出去，父 agent 继续干别的。
+- **Next**：`task-single-plan`（设计集成）或 `task-multi-build`（直接应用）。可以作为 background agent 派出去，父 agent 继续干别的。
 - **不用于**：仓内搜索（用 `task-explore`）。
 
 #### `task-multimodal-looker`
@@ -455,7 +455,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **目的**：描述或提取用户分享的图片、PDF、截图、图表里的信息。
 - **何时进入**：用户分享了视觉媒体；父 agent 需要媒体里的具体信息。
 - **硬规则**：先回答用户具体问题。低置信度读物明确标出。绝不编造媒体里看不到的文字。当前工具打不开分享的媒体就直说。
-- **Handoff**：需要提取信息的下一个技能。
+- **Next**：需要提取信息的下一个技能。
 - **不用于**：纯文本输入。
 
 #### `task-repo-analyze`
@@ -463,7 +463,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **目的**：分析仓库的结构、约定、工具链和 CI 配置，产出结构化报告供下游技能参考。
 - **何时进入**：首次接触不熟悉的仓库、用户问"这个仓库怎么用？"/"分析一下这个库"、工作流需要仓库上下文但 `spec/repo-analyze/` 下没有已有分析。
 - **硬规则**：扫描前必须提示用户确认（消耗 token 较多）。扫描前先检查 `spec/repo-analyze/` 是否有已有分析。只写 `spec/repo-analyze/`，不动源代码。不编造实际文件中未观察到的信息。
-- **Handoff**：`task-single-plan`（带仓库上下文做计划）或任意执行技能。
+- **Next**：`task-single-plan`（带仓库上下文做计划）或任意执行技能。
 - **不用于**：用户已经熟悉、能自己描述约定的仓库。本技能的价值在于不熟悉的领域。
 
 #### `task-distill-spec`
@@ -471,7 +471,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **目的**：从现有项目文档蒸馏出 overview 级项目 spec（术语表、核心领域模型、设计原则、主干业务逻辑）为可预加载文件，让团队各自的 AI 工具共享同一基线，避免信息差、用词不统一、设计方向偏离。它是骑在详细文档之上的摘要层，不替代、不夺权。
 - **何时进入**：团队想要一份从设计/需求文档蒸馏出的、供 AI 预加载的共享基线（"蒸馏项目 spec"、"生成项目 overview/术语基线"）；或原始文档变更后需要重蒸。
 - **硬规则**：只压缩只定义，绝不推断或杜撰设计。每条 trace 回具体源（`doc:section`），trace 不到的不进。文档为主源；对话历史只贡献"已采纳"的决策（取最新），不收被否决的提案。源冲突标记暴露、不擅自消解。静态快照：源改则重蒸。准入闸：项目专有 + 非显然 + 可 trace。
-- **Handoff**：无。产出 overview spec 即终止；人工审阅标注是建议性的（非阻塞）。
+- **Next**：无。产出 overview spec 即终止；人工审阅标注是建议性的（非阻塞）。
 - **不用于**：替代详细设计文档、做或改设计决策、增量/动态更新（源改则整体重蒸）。没有源文档时凭记忆蒸馏。
 
 #### `task-doc-write`
@@ -479,7 +479,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **目的**：从代码和上下文撰写专业文档。四种模式（api、architecture、guide、readme），两种写作风格（专业风格用于技术参考，科普风格用于 README 和项目介绍）。
 - **何时进入**：用户要求写文档、README、API 参考、设计文档、ADR、用户指南或教程。
 - **硬规则**：不编造源码中未观察到的 API 签名或行为。同一文档内不混用风格。输出不留占位文字。记录当前状态，非未来愿景。
-- **Handoff**：`task-judge`（审查文档）或用户（直接交付）。
+- **Next**：`task-judge`（审查文档）或用户（直接交付）。
 - **不用于**：修补已有文档的漂移（用 `job-align`）。写内部 spec 或计划（用 `task-single-plan`）。
 
 ### 2.4 审查与诊断
@@ -492,7 +492,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **何时进入**：多步计划每 ~3 步、任何大动作前（schema migration、部署、`git push`）、执行者报告漂移时。
 - **方法论**：执行中检查点
 - **硬规则**：跑在执行过程中，不在事前或事后。判词是 `continue` / `adjust plan` / `halt`。
-- **Handoff**：执行者（`continue`）、`task-single-plan`（`adjust plan`）、用户（`halt`）。
+- **Next**：执行者（`continue`）、`task-single-plan`（`adjust plan`）、用户（`halt`）。
 - **不用于**：事前评审计划（用 `task-challenge`）或事后审计（用 `task-judge`）。
 
 #### `task-judge`（执行之后）
@@ -504,7 +504,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
   - **Standards**：代码是否符合本仓 coding standards 加 Fowler 代码坏味基线？
   - **Spec**：代码是否符合原始 issue / PRD 要求？
 - **硬规则**：不改文件。不做没有具体建议的"你可以考虑..."。永不跨轴合并 findings；一个轴可以通过而另一个失败。
-- **Handoff**：`task-multi-build` / `task-yugong`（应用修复）或用户（架构批准）。
+- **Next**：`task-multi-build` / `task-yugong`（应用修复）或用户（架构批准）。
 - **不用于**：进行中的工作（用 `task-checkpoint`）。
 
 #### `task-debug`（硬 bug）
@@ -513,8 +513,17 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **何时进入**：抵抗过一次修复的硬 bug 或性能回归、"有时会挂"的 flaky、无明显原因的症状链、执行者搞不定要做第二次修复前。
 - **方法论**：六阶段证据优先回路、SHA1 debug 前缀与会话记录文件
 - **硬规则**：没建能报红的回路前不允许进入假设。不做散弹调试。debug 日志必须带 SHA1 前缀。宣告 done 前必须重跑原始复现。
-- **Handoff**：`task-multi-build` / `task-yugong`（应用修复）或 `task-judge`（如果根因是架构问题）。
+- **Next**：`task-multi-build` / `task-yugong`（应用修复）或 `task-judge`（如果根因是架构问题）。
 - **不用于**：直接首次修复能解决的 bug；`task-debug` 只处理硬的。
+
+#### `task-why-how-what`
+
+- **目的**：单一视角的一次接地推演。给定一个起点——原始问题，或对已有方案做 SCAMPER 变换后的某个角度——用黄金圈（Why → How → What）+ 第一性原理把它想透，从这一个视角产出一份结果。
+- **何时进入**：被 `job-scamper` 作为 round 0（起点=原始问题）或后续轮的某个角度派发；或直接做一次黄金圈 / 第一性原理推演。
+- **方法论**：黄金圈（Sinek：Why → How → What）；第一性原理推导。从根本目的和不可再约的约束往上推，绝不靠类比或从成品倒推。
+- **硬规则**：每次调用只一个视角，不混角度。按 Why → How → What 的顺序推，绝不从 What 倒填 Why。第一性原理，不靠类比。不做跨结果排序——那是调用者的裁决。
+- **Next**：无。返回一个视角的结果；由 `job-scamper` 汇总裁决。
+- **不用于**：在多个结果里挑最优（那是 `job-scamper`）；一次推演里塞多个角度。
 
 ---
 
@@ -612,6 +621,15 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **调度规则**: 不派 `task-yugong` / `task-multi-build` / `task-clarify` / `job-plan` / `job-build` / `job-review` / `job-security-review`。plan step 内联执行。basket 失败必须命名实质差异化的下一次尝试才能重试；否则记为 stuck-point fix item。fix items 按 LIFO 处理。stall 触发对称 re-planning。
 - **终止状态**: 仅 `Done`。所有 plan step 完成且无未解决 fix item 时到达。worktree 分支留给用户 merge 或 discard。
 - **不适用**: 模糊请求、跨 session 恢复、需要不可逆共享影响操作的计划（这些应在 planning 阶段被 `task-challenge` 拒绝）。
+
+#### `job-scamper`
+
+- **目的**: 多角度方案构建。先产出初始方案，然后循环——对当前方案做 SCAMPER 七角度拆解，舍弃不合理的和已见过的，对每个存活角度派 `task-why-how-what`，再用二八聚焦 + 逻辑自洽重估最优——直到某一轮产不出新的合理角度。追求全面方案，不是找茬。
+- **入场时机**: 用户想让一个方案、计划、设计或决策经系统的多角度分析发展成全面整体。领域通用，不限编码。
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
+- **调度规则**: 每个视角作为独立隔离的 `task-why-how-what` 运行；视角按文件分开，彼此看不到对方推理。编排者自己从不推演某个视角——它生成七个 SCAMPER 角度，套两道过滤（合理性、新颖性），派出存活角度，用二八 + 自洽裁决。绝不为凑满七个而派不合理角度。终止判据是"某一轮产不出新的合理角度"——有限且逐轮消耗的角度空间自然收敛。
+- **Next**: 无。返回全面方案和它逐轮的演化。
+- **不用于**: 单一视角的一次推演（用 `task-why-how-what`）；对已有答案做对抗式找茬。
 
 ---
 

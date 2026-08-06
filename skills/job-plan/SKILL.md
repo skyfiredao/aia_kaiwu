@@ -99,6 +99,6 @@ handoffs:
 [persisted: spec/<slug>/plan.md, spec/<slug>/design.md, ...]
 ```
 
-## Handoff
+## Next
 
-`job-build` (once persisted). The handoff prompt references `spec/<slug>/plan.md` so the executor reads the plan from disk, not from chat context. If `spec/<slug>/design.md` or `guide.md` exists, the executor may consult them as needed.
+`job-build` (once persisted). The dispatch prompt references `spec/<slug>/plan.md` so the executor reads the plan from disk, not from chat context. If `spec/<slug>/design.md` or `guide.md` exists, the executor may consult them as needed.

@@ -46,6 +46,6 @@ handoffs:
 - **When charting**: map body (Destination, Notes, Decisions-so-far, Not yet specified, Out of scope) + tickets created + blocking edges wired.
 - **When working**: resolution comment on the ticket + one-line gist appended to Decisions-so-far + any new tickets graduated from the fog.
 
-## Handoff
+## Next
 
 Dispatch subagents per ticket type (`@task-librarian`, `@task-quick-verify`, `@task-clarify`, `@task-single-plan`); return to user at end of each session.
