@@ -1,6 +1,6 @@
 ---
 name: task-multimodal-looker
-description: Describe or extract information from images, PDFs, screenshots, and diagrams the user shares. Use when the request involves visual media and the parent agent needs the textual answer that lives inside it.
+description: Describe or extract information from images, PDFs, screenshots, and diagrams. Use when the request involves visual media.
 is_background: false
 ---
 

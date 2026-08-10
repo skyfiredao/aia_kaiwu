@@ -1,6 +1,6 @@
 ---
 name: job-debug
-description: Workflow for bug diagnosis. Runs first-pass diagnosis via task-debug; escalates to job-debug-deep if the bug resists a straightforward fix.
+description: Bug diagnosis, first pass. Use for a reported bug with a clear reproduction; escalates to job-debug-deep if it resists a straightforward fix.
 is_background: false
 agents: [task-debug, task-yugong]
 handoffs:

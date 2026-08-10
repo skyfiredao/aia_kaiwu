@@ -1,6 +1,6 @@
 ---
 name: task-single-plan
-description: Planning. Use when the request is multi-step (≥3 steps), has an architectural choice on the table, touches multiple modules, or the scope is not obvious. Produces a written plan (or a spec/PRD if substantial).
+description: Planning. Use when the request is multi-step (>=3 steps), has an architectural choice on the table, touches multiple modules, or the scope is not obvious.
 is_background: false
 agents: [task-explore, task-librarian]
 handoffs:

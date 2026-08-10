@@ -1,6 +1,6 @@
 ---
 name: task-why-how-what
-description: Given one starting point — the raw problem, or a SCAMPER-transformed angle on an existing solution — reason it through the Golden Circle (Why then How then What) grounded in first principles, and produce one result from that single vantage. Does not judge across results; it produces only its own. File-based inputs and output. Dispatched by job-scamper, or usable standalone for a single grounded pass. Triggers - "why how what", "golden circle analysis", "first-principles pass on this".
+description: Reason one starting point (a raw problem, or a SCAMPER angle) through the Golden Circle (Why to How to What) grounded in first principles, producing one result from that single vantage. Dispatched by job-scamper, or standalone. Triggers - "why how what", "golden circle analysis", "first-principles pass on this".
 is_background: false
 agents: []
 ---

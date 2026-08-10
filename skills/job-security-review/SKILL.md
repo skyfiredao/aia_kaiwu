@@ -1,6 +1,6 @@
 ---
 name: job-security-review
-description: Workflow for end-to-end security audit. Locates security-sensitive surfaces, audits under OWASP scope, verifies external best practice, and optionally escalates unclear findings.
+description: End-to-end security audit. Use for security review or when work touches auth, crypto, or secrets.
 is_background: false
 agents: [task-explore, task-judge, task-librarian, task-debug]
 handoffs:

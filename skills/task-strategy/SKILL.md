@@ -1,6 +1,6 @@
 ---
 name: task-strategy
-description: Multi-session wayfinding for work bigger than one context. Charts a map of decision tickets on the issue tracker, then resolves one ticket per session until the way to the destination is clear.
+description: Multi-session wayfinding for work bigger than one context. Use for foggy, multi-session efforts that need a decision-ticket map before execution.
 is_background: false
 agents: [task-librarian, task-quick-verify, task-clarify, task-single-plan]
 handoffs:

@@ -10,11 +10,11 @@ try {
   Write-Warning "git pull failed; using existing checkout"
 }
 
-Write-Host "replace AGENTS.md and CLAUDE.md..."
+Write-Host "copy AGENTS.md and CLAUDE.md..."
 copy "$SRC\AGENTS.md" "$DST\AGENTS.md" -Force
-copy "$SRC\AGENTS.md" "$DST\CLAUDE.md" -Force
+copy "$SRC\CLAUDE.md" "$DST\CLAUDE.md" -Force
 
-foreach ($t in ".claude\agents", ".cursor\agents", ".opencode\skills") {
+foreach ($t in ".claude\skills", ".cursor\skills", ".opencode\skills") {
   Write-Host "copy skills to $t..."
   robocopy "$SRC\skills" "$DST\$t" /MIR /NFL /NDL /NJH /NJS | Out-Null
 }

@@ -1,6 +1,6 @@
 ---
 name: job-plan
-description: Workflow for turning an ambiguous or multi-step request into approved, persisted plan artifacts. Chains clarify → single-plan → challenge → user approval → persist plan (and optionally design / guide / README) to spec/<slug>/.
+description: Turn an ambiguous or multi-step request into an approved, written plan. Use before implementing when scope is unclear or spans multiple steps.
 is_background: false
 agents: [task-clarify, task-single-plan, task-challenge]
 handoffs:

@@ -16,16 +16,16 @@
 
 | 层 | 文件模式 | 能力 |
 |---|---|---|
-| 路由 | `AGENTS.md` | 读用户每条消息；按第 3.0 节的语义分类表分发到对应工作流或技能。没有关键字表、没有 ask-before-dispatch；不明确的意图路由到 `@task-clarify`。 |
-| 工作流 | `skills/job-*.md` | 把原子技能串成端到端业务流，负责交互策略（审批门或全自动）和状态交接，并可持久化已批准的编排产物。生产代码行为留在被调用的技能。 |
-| 技能 | `skills/task-*.md` | 原子操作的具体行为契约（Purpose / Hard constraints / Output shape / Handoff）。每个技能做好一件事。 |
+| 路由 | `AGENTS.md` | 读用户每条消息；按第 3.0 节的语义分类表分发到对应工作流或技能。没有关键字表、没有 ask-before-dispatch；不明确的意图路由到 `/task-clarify`。 |
+| 工作流 | `skills/job-*/SKILL.md` | 把原子技能串成端到端业务流，负责交互策略（审批门或全自动）和状态交接，并可持久化已批准的编排产物。生产代码行为留在被调用的技能。 |
+| 技能 | `skills/task-*/SKILL.md` | 原子操作的具体行为契约（Purpose / Hard constraints / Output shape / Handoff）。每个技能做好一件事。 |
 
 组合方式：
 
 - 用户发消息 → **Layer 1 (`AGENTS.md`)** 按 3.0 节的语义分类表分类意图
 - 多步意图 → 分发到 **Layer 2 (`job-*`)** 工作流，工作流再按定义好的链调 **Layer 3 (`task-*`)** 技能
 - 单步原子意图 → 直接分发到 **Layer 3 (`task-*`)** 技能
-- 意图不明 → 路由到 `@task-clarify`。router 仍然做 dispatch；澄清通过技能调用完成，不在 router 层对话
+- 意图不明 → 路由到 `/task-clarify`。router 仍然做 dispatch；澄清通过技能调用完成，不在 router 层对话
 
 ### 为什么是三层而不是平铺
 
@@ -41,15 +41,15 @@
 - **工作流（第二层）** 是编号的分发链（`call task-A → task-B → gate → task-C`）。不用开放推理；照编号步骤走。
 - **执行类技能（第三层）** 使用明确的机器可判 predicate（测试通过、exit code 0、期望输出、HTTP 状态匹配等）作为 done 判据。分析类技能使用结构化判词和带来源的证据。
 - **有界预算**（`task-yugong` 单会话上限 13 basket；no-progress 检测阻断打转）防止跑飞的循环带来成本失控。
-- **歧义走 `@task-clarify`**：一次通过技能调用产出的聚焦澄清问题，比五轮 router 层来回猜测便宜得多。
+- **歧义走 `/task-clarify`**：一次通过技能调用产出的聚焦澄清问题，比五轮 router 层来回猜测便宜得多。
 
 综合来看，一个便宜模型读这套配置，可以完整跑通工作流（plan → build → verify → review），成本上限清晰、成功判据明确，**匹配甚至超过**没有结构约束的顶级模型自由发挥。成本降低、执行加速、AI 在正确条件上停下而不是无限磨。
 
 ### 文件布局
 
-- `skills/task-*.md`：原子技能
-- `skills/job-*.md`：多步工作流
-- 工具注册（`.claude/agents/*.md`、`.cursor/agents/*.md`、`.opencode/skills/*/SKILL.md`）统一 symlink 指向 `skills/` 里的规范文件，所有支持的工具看到同一份行为契约。
+- `skills/task-*/SKILL.md`：原子技能
+- `skills/job-*/SKILL.md`：多步工作流
+- 工具注册（`.claude/skills/*/SKILL.md`、`.cursor/skills/*/SKILL.md`、`.opencode/skills/*/SKILL.md`）统一 symlink 指向 `skills/` 里的规范文件，所有支持的工具看到同一份行为契约。
 
 ### 各宿主工具的能力矩阵
 
@@ -57,7 +57,7 @@
 
 | 能力                                                | opencode           | Cursor             | Claude Code                                                                    | VS Code + Copilot                            |
 | --------------------------------------------------- | ------------------ | ------------------ | ------------------------------------------------------------------------------ | -------------------------------------------- |
-| 单轮内并发派发 subagent                             | 部分（平台内置 `plan`/`build`/`general`/`explore`/`librarian`/`multimodal-looker` 通过 `task` 工具可并发；`task-*` / `job-*` 项目能力通过 `skill(name=...)` 加载，在**共享上下文中顺序执行**） | 是（内置 `explore`/`bash`/`browser`；自定义 `.cursor/agents/*.md`；嵌套 2 层） | 是（`.claude/agents/*.md`；Task 工具并发调用） | 是（自动扫 `.claude/agents/*.md`；`agent/runSubagent` + `.agent.md` wrapper；开启配置项后嵌套 5 层） |
+| 单轮内并发派发 subagent                             | 原生 subagent 支持并发（`task` 工具跑内置 `general`/`explore`/`scout` + `.opencode/agents/*` 自定义 agent，独立 child session 并行）；但 `task-*` / `job-*` 项目能力挂成 skill——通过 `skill(name=...)` 加载、在父上下文**顺序执行**） | 是（内置 `explore`/`bash`/`browser`；自定义 `.cursor/skills/*/SKILL.md`；嵌套 2 层） | 是（`.claude/skills/*/SKILL.md`；Task 工具并发调用） | 是（自动扫 `.claude/skills/*/SKILL.md`；`agent/runSubagent`；开启配置项后嵌套 5 层） |
 | 后台任务带完成回调 / 通知                           | 是（subagent 派发时 `run_in_background=true`；完成后 `<system-reminder>` 通知） | 是（后台 subagent + `stop`/`subagentStop` hook；Cloud Agent + iOS 推送 / Slack / Live Activity） | 部分（Bash 支持 `run_in_background=true`；无独立后台 subagent 回调） | 是（`chat.notifyWindowOnResponseReceived`；Copilot CLI 后台 session；Hooks Preview） |
 | Agent 模式 / 人格间的自动状态交接                   | 是（父 → 子 subagent 带 continuation session id；`task(task_id=…)` 恢复完整上下文） | 是（父 → 子；本地 ↔ 云；主聊天 ↔ 侧栏聊天带上下文；可按 ID 恢复子 subagent） | 部分（子 subagent 返最终结果给父；父来编排下一次派发） | 是（`handoffs:` frontmatter 可选 `send: true` 自动提交；Session Target 下拉；Continue in Cloud；Plan → Agent） |
 
@@ -404,7 +404,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 #### `task-multi-build`
 
-- **目的**：多域实施者，主动向专家委派。跨多个模块执行改动；宿主支持原生 subagent 时并行派发独立专家。
+- **目的**：多域实施者，主动向专家委派。跨多个模块执行改动；宿主支持并行派发时并行派发独立专家。
 - **何时进入**：任务跨多个模块或系统，能从委派 `task-explore` / `task-librarian` / `task-judge` / `task-multimodal-looker` 中受益。
 - **方法论**：TDD 纪律、执行中检查点（每 ~3 步派）
 - **硬规则**：不做类型抑制、不吞异常、不做未确认的破坏性 git 动作、不做 bug 修复过程中未请求的重构。
@@ -423,7 +423,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 #### `task-general`
 
-- **目的**：跨不相关系统的混合任务协调器，没有专家技能覆盖时的兜底。拆解并派发专家；只有宿主支持原生 subagent 时才并行。
+- **目的**：跨不相关系统的混合任务协调器，没有专家技能覆盖时的兜底。拆解并派发专家；只有宿主支持并行派发时才并行。
 - **何时进入**：任务混合研究和执行，跨几个不相关系统，没有单一专家技能能覆盖。
 - **硬规则**：不吞属于 `task-explore`、`task-librarian`、`task-judge`、`task-multimodal-looker` 或 `task-debug` 的专家活；交给他们。
 - **Next**：各子任务对应的专家技能；聚合结论后交回用户。
@@ -500,7 +500,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 - **目的**：高权威双轴审计。
 - **何时进入**：跨系统的架构选择、同一 bug 首次修复失败 ≥2 次后、完成重大改动准备宣告 done 前、安全/性能判断题。
 - **方法论**：对抗式审查、Fowler 代码坏味基线
-- **双轴保持独立，永不合并、不重排**（原生 subagent 工具可并行）：
+- **双轴保持独立，永不合并、不重排**（支持并行派发的宿主可并行）：
   - **Standards**：代码是否符合本仓 coding standards 加 Fowler 代码坏味基线？
   - **Spec**：代码是否符合原始 issue / PRD 要求？
 - **硬规则**：不改文件。不做没有具体建议的"你可以考虑..."。永不跨轴合并 findings；一个轴可以通过而另一个失败。
@@ -722,7 +722,7 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 **如何开始用这些技能：**
 
-- 读 `AGENTS.md` 第 3.0 节了解语义路由；技能目录在本文件第二部分和 `README.md`。需要显式指定时输入 `@task-<slug>` 或 `@job-<slug>`；否则描述任务让路由器选择。
+- 读 `AGENTS.md` 第 3.0 节了解语义路由；技能目录在本文件第二部分和 `README.md`。需要显式指定时输入 `/task-<slug>` 或 `/job-<slug>`；否则描述任务让路由器选择。
 - 不确定用哪个技能时，找第三部分里最接近的场景，跟着链走。
 - 某个方法论用起来陌生时，回第一部分再读那节，找一个小的真实任务试。
 

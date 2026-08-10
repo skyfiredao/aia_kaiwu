@@ -1,6 +1,6 @@
 ---
 name: task-challenge
-description: Censor-remonstrator. Remonstrates against a written plan for clarity, completeness, and verifiability. Use when a plan already exists (in chat or in a file) and needs a rigorous pass before implementation starts.
+description: Adversarial review of a written plan for clarity, completeness, and verifiability. Use when a plan already exists and needs a rigorous pass before implementation.
 is_background: false
 handoffs:
   - agent: task-single-plan

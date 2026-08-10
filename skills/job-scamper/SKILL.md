@@ -1,6 +1,6 @@
 ---
 name: job-scamper
-description: Multi-angle solution builder. Produces an initial solution, then loops - SCAMPER-decompose the current solution across seven angles (discarding unreasonable or already-seen ones), dispatch task-why-how-what per surviving angle, then re-evaluate the optimum by Pareto focus plus logical self-consistency - until a round yields no new reasonable angle. Domain-general, aims at a comprehensive solution, not fault-finding. Triggers - "scamper", "multi-angle analysis", "build a comprehensive solution from all angles", "全角度分析".
+description: Build a comprehensive solution through systematic multi-angle (SCAMPER) analysis, round by round until no new angle remains. Domain-general, aimed at a comprehensive solution, not fault-finding. Triggers - "scamper", "multi-angle analysis", "build a comprehensive solution from all angles", "全角度分析".
 is_background: false
 agents: [task-why-how-what]
 ---

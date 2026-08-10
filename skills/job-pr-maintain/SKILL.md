@@ -1,6 +1,6 @@
 ---
 name: job-pr-maintain
-description: Workflow for maintaining an open pull request through its review lifecycle. Each round runs a fresh first-principles review of the current diff (never verifies external tools' fix markers), reads human reviewer comments, dispatches executors to apply fixes, updates PR description, and replies to review threads. Review results are posted only after user confirmation. GitHub write operations require explicit authorization.
+description: Maintain an open pull request through its review lifecycle. Use to address reviewer comments, update the PR description, and reply to review threads.
 is_background: false
 agents: [task-explore, task-judge, task-yugong, task-multi-build]
 handoffs:

@@ -1,6 +1,6 @@
 ---
 name: job-review
-description: Workflow for pre-completion review. Walks the plan against the actual diff, runs Standards + Spec audit, scans for known-bug signatures and leftover debug/TODO.
+description: Comprehensive pre-completion review. Use before claiming work done, to check the diff against the plan and standards.
 is_background: false
 agents: [task-challenge, task-judge, task-explore]
 handoffs:

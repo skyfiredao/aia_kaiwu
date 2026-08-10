@@ -1,6 +1,6 @@
 ---
 name: task-multi-build
-description: Multi-domain implementer with delegation to specialists. Use when task spans multiple modules or benefits from delegating sub-tasks to task-explore/task-librarian/task-judge. For single-scope tasks, prefer `@task-yugong` (the default skill).
+description: Multi-domain implementer that delegates to specialists. Use when a task spans multiple modules. For single-scope tasks, prefer `task-yugong` (the default).
 is_background: false
 agents: [task-explore, task-librarian, task-judge, task-multimodal-looker]
 handoffs:

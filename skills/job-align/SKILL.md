@@ -1,6 +1,6 @@
 ---
 name: job-align
-description: Workflow for aligning documentation with actual code implementation after iterative changes. Enumerates doc touch-points, classifies stale/missing/drift, obtains approval, and dispatches edits.
+description: Align documentation with the actual code after iterative changes. Use when docs may be stale, missing, or drifted from implementation.
 is_background: false
 agents: [task-explore, task-yugong, task-multi-build, task-judge]
 handoffs:

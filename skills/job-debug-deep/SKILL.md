@@ -1,6 +1,6 @@
 ---
 name: job-debug-deep
-description: Workflow for hard-bug diagnosis end-to-end. Drives task-debug through the six-phase evidence-first loop, dispatches task-librarian for external knowledge, escalates to task-judge for architectural verdicts, hands off the fix, and verifies cleanup.
+description: Hard-bug diagnosis end-to-end. Use for flaky, fix-resistant, or chained-symptom bugs with no obvious cause.
 is_background: false
 agents: [task-debug, task-librarian, task-judge, task-yugong, task-multi-build]
 handoffs:

@@ -1,6 +1,6 @@
 ---
 name: task-checkpoint
-description: Mid-execution checkpoint review. Use after every ~3 steps of plan execution, before major state transitions (schema migrations, deployments, git push), or when the executor reports drift. Verdict is continue / adjust plan / halt.
+description: Mid-execution checkpoint review. Use after every ~3 steps, before major state transitions (schema migrations, deployments, git push), or when the executor reports drift.
 is_background: false
 handoffs:
   - agent: task-multi-build

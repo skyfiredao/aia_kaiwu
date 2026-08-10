@@ -1,6 +1,6 @@
 ---
 name: job-spiral-up
-description: Single-session autonomous supervisor. Given a user requirement, drives task-single-plan → inline execution with basket-level retry → review to Done inside a git worktree branch. spiral-up maintains its own loop table at spec/<slug>/job-spiral-up.md; atomic skill outputs are never mutated. Commits every cycle. Only Done terminal.
+description: Single-session autonomous supervisor that drives plan to execution to review to Done with no interaction, inside a git worktree. Use for "spiral up", "run to convergence", "loop until done", "循环直到结束".
 is_background: false
 agents: [task-single-plan, task-challenge, task-judge, task-explore, task-librarian, task-multimodal-looker, task-debug]
 ---

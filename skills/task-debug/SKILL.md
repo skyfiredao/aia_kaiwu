@@ -1,6 +1,6 @@
 ---
 name: task-debug
-description: Hard-bug diagnostics via a red-capable feedback loop and 3-5 falsifiable hypotheses. Use for hard bugs, perf regressions, "sometimes fails" flakiness, or before a second fix attempt the executor cannot pin down.
+description: Hard-bug diagnostics. Use for hard bugs, perf regressions, "sometimes fails" flakiness, or before a second fix attempt the executor cannot pin down.
 is_background: false
 handoffs:
   - agent: task-multi-build

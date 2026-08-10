@@ -1,6 +1,6 @@
 ---
 name: job-build
-description: Workflow for executing an approved plan under TDD discipline with mid-execution checkpoints and a pre-completion review. Routes to task-yugong (single-scope) or task-multi-build (multi-module).
+description: Execute an approved plan end-to-end. Use when a plan already exists and needs implementing (single-scope or multi-module).
 is_background: false
 agents: [task-yugong, task-multi-build, task-checkpoint]
 handoffs:

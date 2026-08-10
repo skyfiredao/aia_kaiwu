@@ -1,6 +1,6 @@
 ---
 name: task-yugong
-description: DEFAULT SKILL for concrete implementation tasks. Grinds through one clearly-scoped task with full engineering discipline, no delegation of the primary task, no scope expansion, keeps going through obstacles. Prefer over `task-multi-build` when the task is single-scope.
+description: DEFAULT SKILL for concrete implementation tasks. Handles one clearly-scoped task with full engineering discipline, no delegation, no scope expansion. Prefer over `task-multi-build` when the task is single-scope.
 is_background: false
 agents: []
 ---

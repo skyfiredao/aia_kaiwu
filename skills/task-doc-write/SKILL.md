@@ -1,6 +1,6 @@
 ---
 name: task-doc-write
-description: Write professional documentation from code and context. Four modes (api, architecture, guide, readme) with two writing styles (professional, accessible). Writable; outputs to user-specified path or docs/.
+description: Write documentation from code and context. Use for API reference, architecture doc, guide, or README.
 is_background: false
 agents: [task-explore, task-repo-analyze, task-librarian]
 handoffs:

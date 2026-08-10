@@ -1,6 +1,6 @@
 ---
 name: task-repo-analyze
-description: Analyze a repository's structure, conventions, build/test/lint commands, and CI configuration. Token-intensive; prompts user before scanning. Persists output to spec/repo-analyze/. Checks existing analysis history before re-scanning.
+description: Analyze a repository's structure, conventions, build/test/lint commands, and CI configuration. Use for "analyze this repo" / "分析一下这个库".
 is_background: false
 handoffs:
   - agent: task-single-plan

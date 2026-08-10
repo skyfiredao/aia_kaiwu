@@ -1,6 +1,6 @@
 ---
 name: task-quick-verify
-description: Throwaway prototype answering one design question (logic or UI branch). Use when the user asks "does this state model feel right?" or "what should this look like?" and a cheap concrete artifact would answer faster than more discussion.
+description: Throwaway prototype answering one design question. Use when the user asks "does this state model feel right?" or "what should this look like?" and a cheap artifact answers faster than discussion.
 is_background: false
 handoffs:
   - agent: task-single-plan

@@ -16,16 +16,16 @@ Unlike a flat multi-agent config where every capability sits at the same level, 
 
 | Layer | File pattern | Capability |
 |---|---|---|
-| Router | `AGENTS.md` | Reads every user message; classifies intent semantically per section 3.0's routing table and dispatches to the right workflow or skill. No keyword table, no ask-before-dispatch; ambiguous intent routes to `@task-clarify`. |
-| Workflow | `skills/job-*.md` | Multi-step chains that compose task skills, own interaction policy (approval gates or fully autonomous) and state handoffs, and may persist approved orchestration artifacts. Production-code behavior stays in invoked tasks. |
-| Task | `skills/task-*.md` | Atomic operations with concrete behavior contracts (Purpose / Hard constraints / Output shape / Handoff). Each task does one thing well. |
+| Router | `AGENTS.md` | Reads every user message; classifies intent semantically per section 3.0's routing table and dispatches to the right workflow or skill. No keyword table, no ask-before-dispatch; ambiguous intent routes to `/task-clarify`. |
+| Workflow | `skills/job-*/SKILL.md` | Multi-step chains that compose task skills, own interaction policy (approval gates or fully autonomous) and state handoffs, and may persist approved orchestration artifacts. Production-code behavior stays in invoked tasks. |
+| Task | `skills/task-*/SKILL.md` | Atomic operations with concrete behavior contracts (Purpose / Hard constraints / Output shape / Handoff). Each task does one thing well. |
 
 Composition:
 
 - User sends a message → **Layer 1 (`AGENTS.md`)** classifies intent semantically via section 3.0's routing table.
 - Multi-step intent → dispatch to a **Layer 2 (`job-*`)** workflow, which then calls one or more **Layer 3 (`task-*`)** skills in a defined chain.
 - Single atomic intent → dispatch directly to a **Layer 3 (`task-*`)** skill.
-- Ambiguous intent → dispatch to `@task-clarify`. The router still routes; clarification happens through skill invocation, not through router-level dialog.
+- Ambiguous intent → dispatch to `/task-clarify`. The router still routes; clarification happens through skill invocation, not through router-level dialog.
 
 ### Why three layers, not one flat list
 
@@ -41,15 +41,15 @@ Frontier models are not required for most operations here. The three-layer desig
 - **Workflows (Layer 2)** are numbered dispatch chains (`call task-A → task-B → gate → task-C`). No open-ended reasoning; just follow the numbered steps.
 - **Execution tasks (Layer 3)** use explicit machine-verifiable predicates (test passing, exit code 0, expected output present, HTTP status match, etc.) for done gates. Advisor tasks use structured verdicts and cited evidence.
 - **Bounded budgets** (`task-yugong` caps a session at 13 baskets; no-progress detection halts thrashing) prevent runaway loops that rack up cost.
-- **Ambiguity handled by `@task-clarify`**: one focused clarifying question via skill invocation is cheaper than five rounds of ambiguity chasing and does not require the router to ask.
+- **Ambiguity handled by `/task-clarify`**: one focused clarifying question via skill invocation is cheaper than five rounds of ambiguity chasing and does not require the router to ask.
 
 Net effect. A cheap model reading this config can execute complete workflows (plan → build → verify → review) with tight cost caps and clear success predicates, matching or beating a frontier model set loose without structure. Cost drops; execution speed rises; the AI stops on the right conditions instead of grinding indefinitely.
 
 ### File layout
 
-- `skills/task-*.md`: atomic skills
-- `skills/job-*.md`: multi-step workflows
-- Tool registration (`.claude/agents/*.md`, `.cursor/agents/*.md`, `.opencode/skills/*/SKILL.md`) uniformly symlinks the canonical files, so every supported tool sees the same behavior contracts.
+- `skills/task-*/SKILL.md`: atomic skills
+- `skills/job-*/SKILL.md`: multi-step workflows
+- Tool registration (`.claude/skills/*/SKILL.md`, `.cursor/skills/*/SKILL.md`, `.opencode/skills/*/SKILL.md`) uniformly symlinks the canonical files, so every supported tool sees the same behavior contracts.
 
 ### Capability matrix per host tool
 
@@ -57,7 +57,7 @@ Modern coding assistants ship real agent orchestration. Current per-surface stat
 
 | Capability                                                | opencode           | Cursor             | Claude Code                                                                    | VS Code + Copilot                            |
 | --------------------------------------------------------- | ------------------ | ------------------ | ------------------------------------------------------------------------------ | -------------------------------------------- |
-| Parallel subagents from one chat turn                     | Partial (platform built-in `plan`/`build`/`general`/`explore`/`librarian`/`multimodal-looker` via `task` tool may run in parallel; `task-*` / `job-*` project capabilities load via `skill(name=...)` and run **sequentially** in shared context) | Yes (built-in `explore`/`bash`/`browser`; custom `.cursor/agents/*.md`; nested up to 2 levels) | Yes (`.claude/agents/*.md`; Task tool parallel invocation) | Yes (auto-loads `.claude/agents/*.md`; `agent/runSubagent` + `.agent.md` wrappers; nested to 5 with setting) |
+| Parallel subagents from one chat turn                     | Yes for native subagents (`task` tool runs built-in `general`/`explore`/`scout` + custom `.opencode/agents/*` in isolated child sessions, in parallel); but `task-*` / `job-*` project capabilities are mounted as skills — loaded via `skill(name=...)` and run **sequentially** in the parent context | Yes (built-in `explore`/`bash`/`browser`; custom `.cursor/skills/*/SKILL.md`; nested up to 2 levels) | Yes (`.claude/skills/*/SKILL.md`; Task tool parallel invocation) | Yes (auto-loads `.claude/skills/*/SKILL.md`; `agent/runSubagent`; nested to 5 with setting) |
 | Background tasks with completion callback / notification  | Yes (`run_in_background=true` on subagent dispatch; `<system-reminder>` completion notifications) | Yes (background subagents + `stop`/`subagentStop` hooks; Cloud Agents + iOS push / Slack / Live Activities) | Partial (Bash `run_in_background=true` for shell tasks; no separate background subagent callback) | Yes (`chat.notifyWindowOnResponseReceived`; Copilot CLI background sessions; Hooks Preview) |
 | Automatic state handoff between agent modes / personas    | Yes (parent → subagent with continuation session ids; `task(task_id=…)` resumes with full context) | Yes (parent → subagent; local ↔ cloud move; main ↔ side chat with context; resumable subagents by ID) | Partial (subagent returns final result to parent; parent orchestrates next dispatch) | Yes (`handoffs:` frontmatter with optional `send: true` auto-submit; Session Target dropdown; Continue in Cloud; Plan → Agent) |
 
@@ -410,7 +410,7 @@ Skills that write code and produce artifacts.
 
 #### `task-multi-build`
 
-- **Purpose**: Multi-domain implementer with active delegation to specialists. Executes changes across multiple modules and runs independent specialists in parallel where the host supports native subagents.
+- **Purpose**: Multi-domain implementer with active delegation to specialists. Executes changes across multiple modules and runs independent specialists in parallel where the host supports parallel dispatch.
 - **When to enter**: Task spans multiple modules or systems, benefits from delegating sub-tasks to `task-explore` / `task-librarian` / `task-judge` / `task-multimodal-looker`.
 - **Methodologies**: TDD Discipline, Mid-Execution Checkpoint (dispatched every ~3 steps)
 - **Hard rule**: No type suppression, no empty catch blocks, no destructive git actions without user confirmation, no unsolicited refactors while doing a bug fix.
@@ -429,7 +429,7 @@ Skills that write code and produce artifacts.
 
 #### `task-general`
 
-- **Purpose**: Coordination of mixed research and execution across unrelated systems when no specialist skill fits. Decompose and dispatch specialists; parallelize only where the host supports native subagents.
+- **Purpose**: Coordination of mixed research and execution across unrelated systems when no specialist skill fits. Decompose and dispatch specialists; parallelize only where the host supports parallel dispatch.
 - **When to enter**: Task mixes research and execution across several unrelated systems and no single specialized skill covers it.
 - **Hard rule**: Never swallow specialist work that belongs to `task-explore`, `task-librarian`, `task-judge`, `task-multimodal-looker`, or `task-debug`; hand off.
 - **Next**: Specialist skills per sub-task; return control to user with aggregated conclusion.
@@ -506,7 +506,7 @@ Skills that inspect work for defects, at three different points in time.
 - **Purpose**: High-authority audit on two independent axes.
 - **When to enter**: Architectural choice with multi-system trade-offs, after ≥2 failed fix attempts on the same bug, after completing a significant change before claiming done, security/performance judgment call.
 - **Methodologies**: Adversarial Review, Fowler Smell Baseline
-- **Two axes stay independent** (never merged or re-ranked; native subagent tools may run them in parallel):
+- **Two axes stay independent** (never merged or re-ranked; hosts with parallel dispatch may run them in parallel):
   - **Standards**: does the code follow this repo's coding standards + the Fowler smell baseline?
   - **Spec**: does the code match what the originating issue / PRD asked for?
 - **Hard rule**: No file edits. No vague "you could consider…" without a concrete recommendation. Never merge findings across axes; one axis can pass while the other fails.
@@ -728,7 +728,7 @@ Three realistic development situations, walked end-to-end. Each shows which skil
 
 **How to start using the skills:**
 
-- Read `AGENTS.md` section 3.0 for semantic routing; the skill catalog is in this file (Part 2) and `README.md`. Type `@task-<slug>` or `@job-<slug>` when you want to name a skill explicitly, or describe the task and let the router choose.
+- Read `AGENTS.md` section 3.0 for semantic routing; the skill catalog is in this file (Part 2) and `README.md`. Type `/task-<slug>` or `/job-<slug>` when you want to name a skill explicitly, or describe the task and let the router choose.
 - When in doubt about which skill, look for the closest scenario in Part 3 and follow its chain.
 - When a methodology feels unfamiliar in practice, re-read its section in Part 1 and try it on a small real task.
 

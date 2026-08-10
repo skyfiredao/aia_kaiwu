@@ -1,6 +1,6 @@
 ---
 name: job-verify
-description: Workflow for verifying in-progress work against the approved plan. Verdict is continue / adjust plan / halt.
+description: Verify in-progress work against the approved plan. Use mid-execution to check progress.
 is_background: false
 agents: [task-checkpoint]
 handoffs:

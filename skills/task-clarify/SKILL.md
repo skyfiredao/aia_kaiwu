@@ -1,6 +1,6 @@
 ---
 name: task-clarify
-description: Pre-plan draft-critique of the user's request itself. Use when the request is ambiguous, sounds larger than one turn, or contains contradictions the user may not have noticed. Never proposes a plan or implementation; only critiques the request itself.
+description: Critique the user's request itself, before planning. Use when the request is ambiguous, sounds larger than one turn, or contains contradictions. Never proposes a plan; only critiques the request.
 is_background: false
 handoffs:
   - agent: task-single-plan

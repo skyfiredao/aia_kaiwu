@@ -26,53 +26,50 @@ When the current user message does not explicitly invoke an agent via `@name`:
 
 | Intent (semantic) | Dispatch to |
 |---|---|
-| Multi-step feature; planning discussion; architectural choice | `@job-plan` |
-| Execute an existing / approved plan | `@job-build` |
-| Verify mid-execution progress | `@job-verify` |
-| Comprehensive pre-completion review | `@job-review` |
-| Code-doc alignment; docs out of date | `@job-align` |
-| Bug reported, first attempt (simple, clear reproduction) | `@job-debug` |
-| Hard bug: flaky / resisted prior fix / chained symptoms / no obvious cause | `@job-debug-deep` |
-| Security audit; touches auth / crypto / secrets | `@job-security-review` |
-| Autonomous run to convergence with no interaction ("spiral up", "run to convergence", "loop until done", "keep going until complete", "infinite loop", "循环直到结束", "一直到结束", "不要停，直到完成", "无限循环") | `@job-spiral-up` |
-| Build a comprehensive solution through systematic multi-angle (SCAMPER) analysis, round by round until no new angle remains ("scamper", "multi-angle analysis", "全角度分析", "build a comprehensive solution from all angles") | `@job-scamper` |
-| Address PR review comments; update PR description; respond to feedback | `@job-pr-maintain` |
-| Locate code in this repo ("where is X defined?") | `@task-explore` |
-| External library / API research | `@task-librarian` |
-| Analyze repository structure, conventions, tooling ("分析一下这个库") | `@task-repo-analyze` |
-| Distill an overview-level project spec (glossary / concepts / principles / business logic) from existing docs for AI preload ("蒸馏项目 spec", "生成项目 overview/术语基线") | `@task-distill-spec` |
-| Write documentation (API reference, design doc, guide, README) | `@task-doc-write` |
-| Analyze image / PDF / diagram | `@task-multimodal-looker` |
-| Throwaway prototype for a design question | `@task-quick-verify` |
-| Multi-session foggy work (chart a decision-ticket map) | `@task-strategy` |
-| Concrete single-scope implementation task | `@task-yugong` |
-| No match above; multi-step mixed research + implementation across unrelated systems (fallback default) | `@task-general` |
+| Multi-step feature; planning discussion; architectural choice | `/job-plan` |
+| Execute an existing / approved plan | `/job-build` |
+| Verify mid-execution progress | `/job-verify` |
+| Comprehensive pre-completion review | `/job-review` |
+| Code-doc alignment; docs out of date | `/job-align` |
+| Bug reported, first attempt (simple, clear reproduction) | `/job-debug` |
+| Hard bug: flaky / resisted prior fix / chained symptoms / no obvious cause | `/job-debug-deep` |
+| Security audit; touches auth / crypto / secrets | `/job-security-review` |
+| Autonomous run to convergence with no interaction ("spiral up", "run to convergence", "loop until done", "keep going until complete", "infinite loop", "循环直到结束", "一直到结束", "不要停，直到完成", "无限循环") | `/job-spiral-up` |
+| Build a comprehensive solution through systematic multi-angle (SCAMPER) analysis, round by round until no new angle remains ("scamper", "multi-angle analysis", "全角度分析", "build a comprehensive solution from all angles") | `/job-scamper` |
+| Address PR review comments; update PR description; respond to feedback | `/job-pr-maintain` |
+| Locate code in this repo ("where is X defined?") | `/task-explore` |
+| External library / API research | `/task-librarian` |
+| Analyze repository structure, conventions, tooling ("分析一下这个库") | `/task-repo-analyze` |
+| Distill an overview-level project spec (glossary / concepts / principles / business logic) from existing docs for AI preload ("蒸馏项目 spec", "生成项目 overview/术语基线") | `/task-distill-spec` |
+| Write documentation (API reference, design doc, guide, README) | `/task-doc-write` |
+| Analyze image / PDF / diagram | `/task-multimodal-looker` |
+| Throwaway prototype for a design question | `/task-quick-verify` |
+| Multi-session foggy work (chart a decision-ticket map) | `/task-strategy` |
+| Concrete single-scope implementation task | `/task-yugong` |
+| No match above; multi-step mixed research + implementation across unrelated systems (fallback default) | `/task-general` |
 
-When the user explicitly requests an autonomous no-interaction run and supplies a bounded goal, the `job-spiral-up` row takes precedence over other semantic rows. Phrases such as "infinite loop" or "无限循环" express routing intent only; execution is bounded by the workflow's Done terminal (all plan steps done and no unresolved fix items). Security-sensitive diffs are audited inline via `task-judge` (OWASP scope) + `task-librarian` (best practice) within the workflow.
+When the user explicitly requests an autonomous no-interaction run and supplies a bounded goal, the `job-spiral-up` row takes precedence over other semantic rows. Phrases such as "infinite loop" or "无限循环" express routing intent only; execution stays bounded.
 
-**When intent is genuinely ambiguous** (multiple rows plausibly match, or none clearly does): dispatch to `@task-clarify` instead of asking the user directly.
+**When intent is genuinely ambiguous** (multiple rows plausibly match, or none clearly does): dispatch to `/task-clarify` instead of asking the user directly.
 
-Explicit user invocation always overrides the classification. Honor whichever capability the user typed and do not silently rewrite it into another one (see section 3.0.1 for the opencode `@plan` vs `@task-single-plan` case).
+Explicit user invocation always overrides the classification. Honor whichever capability the user typed and do not silently rewrite it into another one (see section 3.0.1 for the opencode `@plan` vs `/task-single-plan` case).
 
 **Contract loading.** Entering any `task-*` or `job-*` capability requires loading the full skill file as the first action (mechanism in section 3.0.1). Skipping this is a discipline violation.
 
 **Non-routed capabilities.** `task-single-plan`, `task-multi-build`, `task-challenge`, `task-checkpoint`, `task-judge`, `task-debug`, and `task-why-how-what` are workflow implementation steps — entered via a `job-*` workflow or explicit user invocation, never auto-routed from a bare prompt.
 
-**Where the rest lives.** Each capability's full contract is at `skills/<slug>/SKILL.md` (derive the path from the slug). The human-browsable capability catalog and end-to-end chains live in `README.md` and `INTRODUCTION.md`, not in this file.
-
 ### 3.0.1 Tool-specific behavior
 
 **Capability dispatch and contract loading.**
 
-- Invoke a capability by its slug. In opencode, load it on demand via `skill(name="<slug>")` and stay in the parent thread (`@task-yugong` is a naming convention, not a native mention). In Cursor / Claude Code / VS Code, `@<slug>` invokes it as a native subagent. Either way, entering a capability means loading its `skills/<slug>/SKILL.md` contract first.
-- Per-tool file layout, symlink projections, and install steps live in `README.md` — setup concerns, not runtime behavior.
+- Invoke a capability by its slug. In opencode, load it on demand via `skill(name="<slug>")` and stay in the parent thread (`/task-yugong` is a naming convention, not a native mention). Entering a capability means loading its `skills/<slug>/SKILL.md` contract first.
 
 **Workflow chain semantics.**
 
-- opencode: `job-*` workflows are chains of `skill(name="task-X")` loads in the parent context. Steps run **sequentially in shared context**; later skills see earlier outputs, and "parallel" steps become "back to back." Do not claim parallelism; do not claim background jobs with completion callbacks that the tool does not provide.
+- opencode: a `job-*` that chains `skill(name=...)` loads runs those steps sequentially in the parent context — not parallel, no background callback. For genuine isolation or parallelism (e.g. `job-scamper` vantages), dispatch a real subagent via the `task` tool, not a skill load.
 - Cursor / Claude Code / VS Code + Copilot: workflow steps dispatched via the native Task tool run in isolated subagent contexts and can execute truly in parallel. Where a workflow file says "in parallel," fire multiple subagents in one turn.
 
-**Platform-built-in disambiguation (opencode).** Never use opencode's platform built-ins (`plan` / `build` / `general` / `explore` / `librarian` / `multimodal-looker`) as a shortcut for a `task-*` or `job-*` capability. Explicit user invocation is the exception: `@plan` means opencode's platform plan agent; `@task-single-plan` means this project's strict plan capability. Honor whichever the user typed; do not silently rewrite one into the other.
+**Platform-built-in disambiguation (opencode).** Never use opencode's built-in or host-provided agents (`plan` / `build` / `general` / `explore` / `scout`, or plugin agents such as `librarian` / `multimodal-looker`) as a shortcut for a `task-*` or `job-*` capability. Explicit user invocation is the exception: `@plan` means opencode's platform plan agent; `/task-single-plan` means this project's strict plan capability. Honor whichever the user typed; do not silently rewrite one into the other.
 
 **Foreground-only capabilities.** `task-yugong` and `job-spiral-up` MUST NOT be dispatched with `run_in_background=true`, `--async`, detached mode, or any tool-specific background variant. All other capabilities MAY be backgrounded where the host supports it.
 

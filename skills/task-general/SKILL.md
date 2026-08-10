@@ -1,6 +1,6 @@
 ---
 name: task-general
-description: Coordinator for multi-step research and execution when no specialist skill fits. Use when a task mixes research and execution across several unrelated systems, or when the user's request spans multiple domains at once.
+description: Fallback coordinator when no specialist skill fits. Use when a task mixes research and execution across several unrelated systems or domains.
 is_background: false
 agents: [task-single-plan, task-explore, task-librarian, task-judge, task-multimodal-looker, task-multi-build, task-yugong]
 handoffs:
