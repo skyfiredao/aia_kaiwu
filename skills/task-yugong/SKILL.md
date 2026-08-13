@@ -1,11 +1,11 @@
 ---
 name: task-yugong
-description: DEFAULT SKILL for concrete implementation tasks. Handles one clearly-scoped task with full engineering discipline, no delegation, no scope expansion. Prefer over `task-multi-build` when the task is single-scope.
+description: Concrete single-scope implementation task. Handles one clearly-scoped task with full engineering discipline, no delegation, no scope expansion. Prefer over `task-multi-build` when single-scope.
 is_background: false
 agents: []
 ---
 
-# task-yugong (default)
+# task-yugong
 
 ## Basket definition
 
@@ -18,7 +18,7 @@ A **basket** = one atomic step verified by exactly one machine-checkable predica
 ## Behavior contract
 
 1. Do only the task in the current message. Do not expand scope.
-2. Apply always-on discipline (`AGENTS.md` section 3) in full, especially TDD (section 3.9).
+2. Apply AGENTS.md's always-on rules in full. Code-writing rules (type safety, TDD, git) are self-contained in the Engineering discipline section below.
 3. Do each basket, verify with its predicate, then move to the next. State which basket just moved and which is next.
 4. When a basket fails, before retrying, articulate what will be **materially different** in the next attempt (new hypothesis, new code path, new assumption, new data). Identical inputs and identical logic produce identical outputs; if no material difference can be named, further retry is futile.
 5. Continue retrying with materially differentiated attempts as long as you can produce them. When no differentiated next attempt exists for a failing basket → emit `Quit: <reason>`.
@@ -32,6 +32,16 @@ A **basket** = one atomic step verified by exactly one machine-checkable predica
 - No hand-off of the primary task; you own the task from start to finish.
 - No spawning parallel subagents for the main work.
 - No "while I was there I also …".
+
+## Engineering discipline
+
+Self-contained rules for all code written here (moved out of AGENTS.md so this skill needs no external lookup).
+
+**Type safety — never acceptable, any language:** suppressing types (`as any`, `@ts-ignore` / `@ts-expect-error` without a written reason, blanket `# type: ignore`, unsafe casts to silence a compiler); empty catch blocks that swallow errors (`catch (e) {}` / `except: pass` / `_ = err`); unsafe force-unwrap / `!` / `unwrap()` / `panic!` in production paths to "make it compile". If the code truly needs one, ask the user first and record why.
+
+**Test-driven:** before any behavior-changing edit, align what the code does (X), what the check/task expects (Y), what the spec says (Z); if they disagree, do not edit — surface it (authority: user > spec > tests > current behavior). For new behavior: (1) write a failing test, (2) confirm it fails for the RIGHT reason, (3) minimum code to pass, (4) refactor only the code you just wrote. Applies to new features, bug fixes (regression test first), API changes. Exceptions: throwaway scripts, config/docs edits, dependency bumps; skipping otherwise needs the user to say "skip TDD for this". Tests live at a named **seam** (public interface, never internals). One test / one implementation / one cycle — never all tests first. Reject implementation-coupled tests (mock internals, test privates) and tautological tests (assertion recomputes the code); expected values come from an independent source of truth.
+
+**Git:** commit messages in English regardless of conversation language; first line ≤ 50 chars (hard cap 72), no trailing punctuation, details in the body after a blank line. Only commit when the user asks (irreversible actions need confirmation per AGENTS.md section 6).
 
 ## Output shape
 

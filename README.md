@@ -16,15 +16,13 @@ One capability per craft, each with a specific behavior contract in `skills/<slu
 
 Three-layer architecture (not a flat multi-agent list):
 
-- **Layer 1, Router** (`AGENTS.md`): reads every user message; classifies intent semantically per section 3.0's routing table and dispatches to the right workflow/skill. No keyword table, no ask-before-dispatch; ambiguous intent routes to `/task-clarify`.
+- **Layer 1, Router** (`AGENTS.md`): reads every user message; classifies intent semantically and dispatches to the right workflow/skill. No keyword table, no ask-before-dispatch; ambiguous intent routes to `/task-clarify`.
 - **Layer 2, Workflow** (`skills/job-*/SKILL.md`): multi-step chains that compose task skills, own interaction policy (approval gates or fully autonomous) and state handoffs, and may persist approved orchestration artifacts.
 - **Layer 3, Task** (`skills/task-*/SKILL.md`): atomic operations with concrete behavior contracts. Each does one thing well.
 
 This three-layer structure borrows the core method of **prompt graph engineering**: the system is modeled as a graph of prompt nodes — skills are the nodes, the semantic routing table and workflow chains are the explicit edges, and structure (how things route) stays separate from content (what each skill does), so each can evolve independently.
 
-**Cheap-model friendly.** Router is a semantic classification table; workflows are numbered dispatch chains; execution tasks use machine-verifiable done predicates; read-only tasks return structured verdicts; budgets are bounded (`task-yugong` caps at 13 baskets).
-
-The full design walkthrough is in [`INTRODUCTION.md`](INTRODUCTION.md), under "Design overview: three-layer architecture".
+**Cheap-model friendly.** Router is a semantic classification table; workflows are numbered dispatch chains; execution tasks use machine-verifiable done predicates; read-only tasks return structured verdicts; budgets are bounded (`task-yugong` quits when no materially different retry remains).
 
 ## Repository layout
 
@@ -135,27 +133,15 @@ Daily use: open the workspace root (`~/workspace` on macOS / Linux, `C:\workspac
 
 Multiple source repos can live under one workspace; they share the same agent config. To start fresh, create a new empty workspace directory; no uninstall needed.
 
-## Per-tool auto-load status
+## After activation
 
-| Tool                                     | Native `AGENTS.md` at root | Bridge / instruction file we ship  | Agent Skills we ship        | Parallel skill dispatch?     |
-| ---------------------------------------- | -------------------------- | ---------------------------------- | ------------------------------------ | ------------------------------------ |
-| **opencode**                             | native                   | none                       | none (skills reached via `skill(name=...)` on demand) | `task` tool runs subagents (built-in `general`/`explore`/`scout` + custom agents under `.opencode/agents/`) in isolated child sessions, parallel or background; project `task-*`/`job-*` are skills (skill tool, parent context), not task subagents |
-| **Cursor**                               | native (`AGENTS.md`)     | `AGENTS.md` (native)       | `.cursor/skills/*/SKILL.md` | built-in, nested subagents        |
-| **Claude Code** (Anthropic CLI)          | via bridge                 | `CLAUDE.md` (`@AGENTS.md` import)   | `.claude/skills/*/SKILL.md` | Task tool, parallel                |
-| **VS Code + Copilot Chat**               | native (`chat.useAgentsMdFile`) | also honors `CLAUDE.md` via `chat.useClaudeMdFile` | auto-scans `.claude/skills/*/SKILL.md` | via `runSubagent`, nested to 5 with setting |
+Once any of the tools above loads `AGENTS.md`, the assistant runs inside the **aia_kaiwu skill/workflow system**:
 
-Full per-tool setup detail follows.
+- A non-question instruction enters `task-yugong` (single scoped task, no delegation, grind until done); a more specific row in the routing table takes over when it matches.
+- Internal delegation goes only to `task-*` / `job-*` sub-agents, never the host's built-in shortcut agents.
+- If the message better fits another custom skill (`task-clarify` for ambiguous scope, `task-single-plan` for architecture, `task-explore` for search, etc.), the assistant routes there per the semantic routing table in `AGENTS.md`.
 
-## Default state after activation
-
-Once any of the tools above loads `AGENTS.md`, the assistant is in the **aia_kaiwu skill/workflow system by default**:
-
-- The active skill is `task-yugong` (single scoped task, no delegation, grind until done).
-- Internal delegation goes only to `task-*` and `job-*` sub-agents. The platform's built-in `plan`/`build`/`general`/`explore`/`librarian`/`multimodal-looker` are never used as a shortcut.
-- Explicit user invocation overrides this. `@plan` calls opencode's platform plan; `/task-single-plan` calls this project's strict plan.
-- If the message better fits another custom skill (`task-clarify` for ambiguous scope, `task-single-plan` for architecture, `task-explore` for search, etc.), the assistant routes there per the semantic routing table in `AGENTS.md` section 3.0.
-
-Full rule spec: `AGENTS.md` section 3.0.
+Full rule spec: `AGENTS.md`.
 
 ---
 
@@ -167,14 +153,14 @@ opencode reads `AGENTS.md` at the workspace root as always-on instructions.
 
 | File | Loaded when | Purpose |
 |---|---|---|
-| `AGENTS.md` (repo root) | Session start | Always-on operating rules, including section 3.0 default routing to `task-*` / `job-*` skills |
+| `AGENTS.md` (repo root) | Session start | Always-on operating rules, including default routing to `task-*` / `job-*` skills |
 | `skills/*/SKILL.md` | On demand via `skill` tool | Full behavior contract for each skill or workflow |
 
 ### Verify it works
 
 1. Open the workspace in an opencode-capable client.
 2. Ask: "What are you following from AGENTS.md right now?"
-3. Expect the AI to state: default state is `task-yugong` (single scoped task, no delegation), per AGENTS.md section 3.0.
+3. Expect the AI to state that a non-question instruction enters `task-yugong` (single scoped task, no delegation).
 4. Ask a scoped implementation task; expect the AI to run it under the `task-yugong` contract (todo list, verify each step, stop and report if scope grows).
 
 ---
@@ -266,7 +252,7 @@ If the model skips skill loading, tell it: "Follow AGENTS.md workflow, load the 
 
 ## Skills and Workflows
 
-Full behavior contract for each capability lives in [`skills/<slug>/SKILL.md`](skills/). Deep design walkthrough (purpose, when to enter, methodologies, hard rules, handoffs, and three end-to-end scenarios) lives in [`INTRODUCTION.md`](INTRODUCTION.md) Part 2 and Part 3.
+Full behavior contract for each capability lives in [`skills/<slug>/SKILL.md`](skills/). Deep design walkthrough (purpose, when to enter, methodologies, hard rules, handoffs, and three end-to-end scenarios) lives in [`INTRODUCTION.md`](INTRODUCTION.md).
 
 **Atomic skills** (`task-*`):
 
@@ -279,7 +265,7 @@ Full behavior contract for each capability lives in [`skills/<slug>/SKILL.md`](s
 | [`task-quick-verify`](skills/task-quick-verify/SKILL.md) | Throwaway prototype answering one design question. |
 | [`task-strategy`](skills/task-strategy/SKILL.md) | Multi-session decision-ticket map. One non-research ticket per session. |
 | [`task-multi-build`](skills/task-multi-build/SKILL.md) | Multi-domain implementer with delegation to specialists. |
-| [`task-yugong`](skills/task-yugong/SKILL.md) | **Default.** Single-scope task, no delegation, grind until done. |
+| [`task-yugong`](skills/task-yugong/SKILL.md) | Single-scope task, no delegation, grind until done. |
 | [`task-general`](skills/task-general/SKILL.md) | Coordinator for mixed work when no specialist fits. |
 | [`task-explore`](skills/task-explore/SKILL.md) | Contextual grep in-repo. |
 | [`task-librarian`](skills/task-librarian/SKILL.md) | External docs, OSS repos, first-party APIs; primary sources only. |

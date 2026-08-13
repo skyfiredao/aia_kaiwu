@@ -16,15 +16,13 @@ English version: [README.md](README.md)。
 
 三层架构（非扁平多 agent 列表）：
 
-- **Layer 1，路由**（`AGENTS.md`）：读用户每条消息；按第 3.0 节的语义分类表分发到对应工作流或技能。没有关键字表、没有 ask-before-dispatch；不明确的意图路由到 `/task-clarify`。
+- **Layer 1，路由**（`AGENTS.md`）：读用户每条消息；按语义分类表分发到对应工作流或技能。没有关键字表、没有 ask-before-dispatch；不明确的意图路由到 `/task-clarify`。
 - **Layer 2，工作流**（`skills/job-*/SKILL.md`）：把原子技能串成端到端业务流，负责交互策略（审批门或全自动）和状态交接，并可持久化已批准的编排产物。
 - **Layer 3，Task**（`skills/task-*/SKILL.md`）：原子操作的具体行为契约。每个 task 做好一件事。
 
 这套三层结构借鉴了 **prompt graph engineering** 的核心方法：把系统建成一张提示词节点的图——技能是节点，语义路由表和工作流链是显式的边，「结构（怎么路由）」与「内容（每个技能怎么做）」彼此分离、可各自独立演化。
 
-**对便宜模型友好。** Router 是语义分类表；工作流是编号分发链；执行类技能使用机器可判 done predicate；分析类技能返回结构化判词；预算有界（`task-yugong` 单会话上限 13 basket）。
-
-完整设计走查见 [`INTRODUCTION_zh.md`](INTRODUCTION_zh.md) 的“设计总览：三层架构”。
+**对便宜模型友好。** Router 是语义分类表；工作流是编号分发链；执行类技能使用机器可判 done predicate；分析类技能返回结构化判词；预算有界（`task-yugong` 在无法给出实质不同的下一次尝试时 Quit）。
 
 ## 目录结构
 
@@ -135,27 +133,15 @@ git clone <source-repo-url> source-repo
 
 一个 workspace 下可以放多个源代码 repo，共享同一份 agent 配置。换一份直接新建一个空 workspace 目录即可，不需要卸载。
 
-## 各工具自动加载情况
+## 激活之后
 
-| 工具                                       | 原生识别根目录 `AGENTS.md` | 我们提供的桥接 / 指令文件            | 我们提供的 Agent Skills               | 并行 skill 派发？                   |
-| ------------------------------------------ | -------------------------- | ------------------------------------ | ------------------------------------- | -------------------------------------- |
-| **opencode**                               | 原生                     | 无                      | 无（通过 `skill(name=...)` 按需调用技能） | `task` 工具在独立 child session 里跑子 agent（内置 `general`/`explore`/`scout` + `.opencode/agents/` 下自定义 agent），可并行或后台；项目 `task-*`/`job-*` 是 skill（skill 工具、父上下文），不是 task 子 agent |
-| **Cursor**                                 | 原生（`AGENTS.md`）      | `AGENTS.md`（原生）        | `.cursor/skills/*/SKILL.md` | 内置，可嵌套 subagent               |
-| **Claude Code**（Anthropic CLI）           | 走桥接                     | `CLAUDE.md`（`@AGENTS.md` 引用）      | `.claude/skills/*/SKILL.md` | Task 工具并发                        |
-| **VS Code + Copilot Chat**                 | 原生（`chat.useAgentsMdFile`）| 同时通过 `chat.useClaudeMdFile` 认 `CLAUDE.md` | 自动扫描 `.claude/skills/*/SKILL.md` | 通过 `runSubagent`，开启配置项后可嵌套 5 层 |
+上面任何一个工具加载 `AGENTS.md` 之后，助手就在 **aia_kaiwu 技能与工作流系统**里运行：
 
-各工具完整配置说明见下面各节。
+- 非问题指令先进 `task-yugong`（单一有界任务、不委派、坚持到验证通过）；命中更具体的路由行时由它接管。
+- 内部派发只走 `task-*` / `job-*` 子 agent，不走宿主自带的快捷 agent。
+- 如果消息更适合另一个自定义技能（`task-clarify` 处理歧义、`task-single-plan` 做架构、`task-explore` 找代码等），助手按 `AGENTS.md` 的语义路由表切换。
 
-## 激活后的默认状态
-
-上面任何一个工具加载 `AGENTS.md` 之后，助手默认就在 **aia_kaiwu 技能与工作流系统**里：
-
-- 当前技能是 `task-yugong`（单一有界任务、不委派、坚持到验证通过）。
-- 内部派发只走 `task-*` 和 `job-*` 子 agent。平台自带的 `plan` / `build` / `general` / `explore` / `librarian` / `multimodal-looker` 不会被当作快捷方式使用。
-- 用户显式指定会覆盖默认：`@plan` 走 opencode 平台的 plan agent；`/task-single-plan` 走本项目严格版 plan。
-- 如果消息更适合另一个自定义技能（`task-clarify` 处理歧义、`task-single-plan` 做架构、`task-explore` 找代码等），助手按 `AGENTS.md` 第 3.0 节的语义路由表切换。
-
-完整规则：`AGENTS.md` 第 3.0 节。
+完整规则：`AGENTS.md`。
 
 ---
 
@@ -167,14 +153,14 @@ opencode 原生把根目录的 `AGENTS.md` 作为 always-on 指令加载。
 
 | 文件 | 加载时机 | 用途 |
 |---|---|---|
-| `AGENTS.md`（根目录） | 会话启动 | Always-on 操作规则，包括第 3.0 节的默认路由到 `task-*` / `job-*` 技能 |
+| `AGENTS.md`（根目录） | 会话启动 | Always-on 操作规则，包括默认路由到 `task-*` / `job-*` 技能 |
 | `skills/*/SKILL.md` | 按需通过 `skill` 工具 | 每个技能或工作流的完整行为契约 |
 
 ### 验证生效
 
 1. 在支持 opencode 协议的客户端打开这个 workspace。
 2. 问："你现在在按 AGENTS.md 的什么规则做事？"
-3. 期望 AI 回答：默认状态是 `task-yugong`（单一有界任务，不委派），出自 AGENTS.md 第 3.0 节。
+3. 期望 AI 回答：非问题指令先进 `task-yugong`（单一有界任务，不委派）。
 4. 给一个界定清楚的实现任务；期望 AI 按 `task-yugong` 契约执行（先出 todo，每步验证，scope 变大就停下汇报）。
 
 ---
@@ -263,7 +249,7 @@ Reference: <https://code.visualstudio.com/docs/agent-customization/agent-skills>
 
 ## 技能与工作流
 
-每个能力的完整行为契约在 [`skills/<slug>/SKILL.md`](skills/)。设计深度导览（目的、进入条件、方法论、硬约束、handoff、以及三个端到端场景）在 [`INTRODUCTION_zh.md`](INTRODUCTION_zh.md) 第二部分和第三部分。
+每个能力的完整行为契约在 [`skills/<slug>/SKILL.md`](skills/)。设计深度导览（目的、进入条件、方法论、硬约束、handoff、以及三个端到端场景）在 [`INTRODUCTION_zh.md`](INTRODUCTION_zh.md)。
 
 **原子技能**（`task-*`）：
 
@@ -276,7 +262,7 @@ Reference: <https://code.visualstudio.com/docs/agent-customization/agent-skills>
 | [`task-quick-verify`](skills/task-quick-verify/SKILL.md) | 一次性原型回答一个设计问题。 |
 | [`task-strategy`](skills/task-strategy/SKILL.md) | 多会话决策票据地图。每会话 1 张非 research 票。 |
 | [`task-multi-build`](skills/task-multi-build/SKILL.md) | 多领域实施者，向专家委派。 |
-| [`task-yugong`](skills/task-yugong/SKILL.md) | **默认**。单一 scope 任务，不委派，磨到验证通过。 |
+| [`task-yugong`](skills/task-yugong/SKILL.md) | 单一 scope 任务，不委派，磨到验证通过。 |
 | [`task-general`](skills/task-general/SKILL.md) | 无专家匹配时的混合任务协调器。 |
 | [`task-explore`](skills/task-explore/SKILL.md) | 本仓库内的上下文 grep。 |
 | [`task-librarian`](skills/task-librarian/SKILL.md) | 外部文档、OSS repo、第一方 API；只用第一手来源。 |

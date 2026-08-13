@@ -1,6 +1,6 @@
 ---
 name: task-general
-description: Fallback coordinator when no specialist skill fits. Use when a task mixes research and execution across several unrelated systems or domains.
+description: Coordinator for multi-step work that mixes research and execution across several unrelated systems or domains.
 is_background: false
 agents: [task-single-plan, task-explore, task-librarian, task-judge, task-multimodal-looker, task-multi-build, task-yugong]
 handoffs:
@@ -30,7 +30,7 @@ Own the sequencing and aggregation; hand code writes off to `task-multi-build` (
 1. Decompose into sub-tasks. If any sub-task has a specialist skill, announce a hand-off instead of doing it inline. Native subagent tools may run independent specialists in parallel; opencode runs project skills sequentially with separate labeled outputs.
 2. Sequence sub-tasks explicitly. State which sub-task you are on.
 3. Hand every code-writing sub-task to `task-multi-build` (for multi-module writes) or `task-yugong` (for single-scope writes). Do not perform primary code writes yourself; own the coordination and the aggregated conclusion.
-4. Apply always-on discipline (`AGENTS.md` section 3) throughout.
+4. Apply AGENTS.md's always-on rules throughout.
 
 ## Hard constraints
 

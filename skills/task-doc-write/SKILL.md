@@ -187,7 +187,7 @@ handoffs:
 - No unnecessary em-dashes. Use commas, periods, or parentheses instead.
 - No multiple colons in a single continuous paragraph.
 - No forced mid-sentence line breaks within a paragraph.
-- No `§` symbol.
+- No section-sign character.
 - No AI-flavored language. Avoid "leverage", "utilize", "ensure", "robust", "seamless", "comprehensive", "cutting-edge", "empower", "streamline", "facilitate". Use plain verbs: use, make sure, strong, smooth, complete, new, let, simplify, help.
 - No closing summary paragraph that restates what was already said. End when the content ends.
 - No rhetorical questions ("Ready to get started?", "What are you waiting for?"). State facts, not prompts.

@@ -13,17 +13,17 @@ handoffs:
 
 ## Boundary: GitHub API vs local git
 
-This workflow owns GitHub API interactions for the PR. It does not own local git operations, which remain under AGENTS.md section 3.8 and the executing skill's responsibility.
+This workflow owns GitHub API interactions for the PR. It does not own local git operations, which remain the executing skill's responsibility under its own git discipline.
 
 | Responsibility | Owner |
 |---|---|
 | Read PR metadata, human reviewer comments, CI status | this workflow (GitHub API, read-only) |
 | Fresh first-principles review of the current diff | this workflow (dispatches task-judge) |
 | Apply code fixes from findings and actionable comments | executor (task-yugong / task-multi-build) |
-| Local git diff, commit, branch management | executor under AGENTS.md 3.8 |
+| Local git diff, commit, branch management | executor (its own git discipline) |
 | Update PR description | this workflow (GitHub API, requires authorization) |
 | Reply to review comments | this workflow (GitHub API, requires authorization) |
-| Push commits to remote | executor (requires push authorization per AGENTS.md 3.6) |
+| Push commits to remote | executor (requires push authorization per AGENTS.md section 6) |
 
 The workflow reads the local diff (`git diff <base>...<head>`) as context input. It does not own the diffing action itself.
 
@@ -71,7 +71,7 @@ Posting to GitHub also requires the user to confirm the review results (step 10)
    - `[actionable]`: clear fix needed. Specify the concrete change.
    - `[discussion]`: needs clarification or technical pushback. Draft a response.
    - `[out-of-scope]`: beyond the PR's scope. Note for a follow-up.
-6. **Apply fixes.** Dispatch `task-yugong` (single-scope) or `task-multi-build` (multi-file) for the first-principles findings and `[actionable]` human comments. Each fix follows TDD discipline per AGENTS.md 3.9.
+6. **Apply fixes.** Dispatch `task-yugong` (single-scope) or `task-multi-build` (multi-file) for the first-principles findings and `[actionable]` human comments. Each fix follows the executor's own TDD discipline.
 7. **Verify fixes.** Confirm each fix by its test / machine-checkable predicate. Run relevant tests. Do not verify against external tools' markers.
 8. **Update PR description** (GitHub write authorization required). If changes materially alter scope or approach, draft an updated description reflecting the current state.
 9. **Draft comment replies** (GitHub write authorization required). For each thread, format the reply for the GitHub comment API:
@@ -107,7 +107,7 @@ Posting to GitHub also requires the user to confirm the review results (step 10)
 - Never dismiss a human reviewer's feedback without technical justification.
 - Never update the PR description or post replies without GitHub write authorization AND user confirmation of the review results (step 10).
 - If the first-principles review finds no issues and no human comment needs a reply, post nothing. Do not manufacture a "no issues this round" summary.
-- Never push code from this workflow. Pushing is an executor action under AGENTS.md 3.6, requiring separate authorization.
+- Never push code from this workflow. Pushing is an executor action under AGENTS.md section 6, requiring separate authorization.
 - Never fabricate reviewer intent. If a comment is unclear, say so.
 - Never silently expand the PR scope while applying fixes. If a fix requires out-of-scope changes, flag it.
 - Reply content posted to GitHub is short human-style prose. No bracket-category tags, alarm emojis, or force-emphasis.
@@ -161,7 +161,7 @@ Posting to GitHub also requires the user to confirm the review results (step 10)
 - [ ] Post inline comments (N items, requires GitHub write authorization + user confirmation)
 - [ ] Post top-level PR comment (requires GitHub write authorization + user confirmation)
 - [ ] Update PR description (requires GitHub write authorization)
-- [ ] Push commits (requires push authorization per AGENTS.md 3.6)
+- [ ] Push commits (requires push authorization per AGENTS.md section 6)
 ```
 
 ## Next

@@ -1,71 +1,390 @@
 # 介绍：如何在软件工程中使用开物 (Kaiwu) 编码代理工作流系统
 
-本文档介绍 *aia_kaiwu* 代理工作流系统的设计理念、能力、方法论和典型用法。目标读者是想要理解**这套系统是什么、为什么这么设计、怎么用于真实开发工作**的软件工程师。安装说明见 [`README_zh.md`](README_zh.md)。
+本文档介绍 *aia_kaiwu* 代理工作流系统的能力、方法论和典型用法。目标读者是想要理解**这套系统是什么、怎么用于真实开发工作**的工程师。
 
 ## 前言
 
 *aia_kaiwu* 取名自宋应星 1637 年的[《天工开物》](https://zh.wikipedia.org/wiki/%E5%A4%A9%E5%B7%A5%E5%BC%80%E7%89%A9)，这部书系统记录了当时的全部工艺。每一门都是独立的工艺门类，有自己的师承、工具与做法。每个能力一门手艺，行为契约明确写在 `skills/<slug>/SKILL.md`。能力 slug 分两个前缀。`task-*` 是原子技能，`job-*` 是多步工作流。
 
-文档分三部分。第一部分定义塑造技能行为的命名方法论。第二部分列出原子技能和多步工作流的进入条件与 handoff。第三部分走三个真实开发场景到底。第一部分按顺序读；第二、三部分理解第一部分后可任意翻。
+---
+
+## 第一部分：技能与工作流
+
+能力按工作阶段分组。每个条目列出目的、何时进入、内嵌方法论、handoff 目标、以及**何时不用**。
+
+### 1.1 决策与规划
+
+在写代码之前决定**做什么**、**按什么顺序**的技能。
+
+#### `task-clarify`
+
+- **目的**：批判用户请求本身，不是代码。列出隐藏假设、模糊之处、可能的 AI 失败模式；只推荐一个最有价值的澄清问题。
+- **何时进入**：请求模糊、比一轮能处理的要大、或者藏着用户自己没注意到的矛盾。
+- **方法论**：第一性原理分解
+- **硬规则**：未获用户批准不推进。不出计划。不动实现。
+- **Next**：`task-single-plan`（用户澄清后）
+- **不用于**：已经精确的请求。直接跳过去 `task-single-plan` 浪费一轮。
+
+#### `task-single-plan`
+
+- **目的**：产出一次执行会话能完成的书面计划（大工作则出 spec/PRD）。
+- **何时进入**：多步工作（≥3 步）、有架构选择、跨多个模块、scope 不明显。
+- **方法论**：第一性原理推导、端到端垂直切片、扩展 → 迁移 → 收缩
+- **硬规则**：写完计划就停。等审批。
+- **Next**：`task-challenge`（评审）→ `task-multi-build` 或 `task-yugong`（执行）。极大的跨会话工作先交给 `task-strategy`。
+- **不用于**：跨多次会话、目的地模糊的工作（用 `task-strategy`）。
+
+#### `task-challenge`
+
+- **目的**：挑一份书面计划在清晰度、完整度、可验证性三个维度上的毛病。每步查三项。
+  - 文件命名了吗？
+  - 可观察结果写了吗？
+  - 验证步骤定义了吗？
+- **何时进入**：书面计划存在（聊天里、文件里、或 `task-single-plan` 产出）需要严格评审再进入实现。
+- **方法论**：对抗式审查
+- **硬规则**：不改计划自己；只返回 findings。不做掩盖真缺陷的客套模糊。
+- **Next**：`task-single-plan`（修订）或 `task-multi-build` / `task-yugong`（批准后执行）。
+- **不用于**：评审实现好的代码（那是 `task-judge`）。
+
+#### `task-quick-verify`
+
+- **目的**：写一次性代码回答一个设计问题，当廉价具体产物比再讨论更快能给出答案时。
+- **何时进入**："这样感觉对吗？" / "该长什么样？" / "这个状态机在边界情况到底怎么走？"
+- **方法论**：双分支原型法
+- **硬规则**：第一天就是一次性的。无测试、无打磨、无持久化。commit 到废弃分支不进 main。
+- **Next**：`task-single-plan`（把验证的决定 fold 进真计划）或 `task-multi-build`（集成）。
+- **不用于**：建生产功能。看起来忍不住合并进 main 时，记住这个分支是废弃的。
+
+#### `task-strategy`
+
+- **目的**：把大的多会话工作画成一张共享决策票据地图。每次会话解一张票，直到通往目的地的路径清晰。
+- **何时进入**：工作大到装不进单次 agent session、通往目的地路径模糊、执行前还有多个决策待决。
+- **方法论**：战争迷雾制图
+- **硬规则**：绝不冲向目的地。每次会话解不超过一张非 research 票据。
+- **Next**：`task-librarian`（research 票）、`task-quick-verify`（prototype 票）、`task-clarify`（grilling 票）、`task-single-plan`（task 票准备好执行规划时）。
+- **不用于**：能装进一次会话的小任务。`task-strategy` 的开销只在真正的多会话工作里值得。
+
+### 1.2 执行
+
+写代码、产出产物的技能。
+
+#### `task-multi-build`
+
+- **目的**：多域实施者，主动向专家委派。跨多个模块执行改动；宿主支持并行派发时并行派发独立专家。
+- **何时进入**：任务跨多个模块或系统，能从委派 `task-explore` / `task-librarian` / `task-judge` / `task-multimodal-looker` 中受益。
+- **方法论**：TDD 纪律、执行中检查点（每 ~3 步派）
+- **硬规则**：不做类型抑制、不吞异常、不做未确认的破坏性 git 动作、不做 bug 修复过程中未请求的重构。
+- **Next**：`task-judge`（实现后审计）。
+- **不用于**：单一 scope 任务。用 `task-yugong`。多域协调成本只在工作真正跨域时值得。
+
+#### `task-yugong`（愚公）
+
+- **命名由来**：愚公移山的寓言里，愚公一点一点地移山。这是"有界、耐心、不委派"的劳动典范，毅力最终换来外力相助。拿一个界定清楚的任务，磨、验证，scope 变大就停。
+- **目的**：拿一个界定清楚的任务，在完整工程纪律下磨到验证通过。
+- **何时进入**：任何单一 scope 的具体实现任务。
+- **方法论**：循环工程、TDD 纪律
+- **硬规则**：主任务不委派。每步最多重试 3 次。任务比预期大就**停下汇报**；绝不悄悄扩张。
+- **Next**：无（结束就完）。中途可咨询 `task-checkpoint`，结尾可咨询 `task-judge`。
+- **不用于**：真正需要专家委派的多域任务（用 `task-multi-build`）。
+
+#### `task-general`
+
+- **目的**：跨不相关系统的混合任务协调器，没有专家技能覆盖时的兜底。拆解并派发专家；只有宿主支持并行派发时才并行。
+- **何时进入**：任务混合研究和执行，跨几个不相关系统，没有单一专家技能能覆盖。
+- **硬规则**：不吞属于 `task-explore`、`task-librarian`、`task-judge`、`task-multimodal-looker` 或 `task-debug` 的专家活；交给他们。
+- **Next**：各子任务对应的专家技能；聚合结论后交回用户。
+- **不用于**：能装进单一技能的任务。`task-general` 是兜底，不是首选。
+
+### 1.3 搜索与研究
+
+不改文件、只搜集信息的技能。
+
+#### `task-explore`
+
+- **目的**：本仓库内的上下文 grep。回答"X 在哪定义？"、"哪个文件处理 Y？"、跨切面模式搜索。
+- **何时进入**：用户问某物在哪定义、哪个文件处理什么；无法从内存回答的跨切面模式搜索。
+- **硬规则**：不改文件。不做超出搜索结果的推测。不概述没打开的文件。第一遍搜索完就停，除非用户要求继续。
+- **Next**：`task-multi-build` / `task-yugong`（修改找到的东西）或 `task-single-plan`（基于发现制定计划）。
+- **不用于**：外部研究（用 `task-librarian`）。
+
+#### `task-librarian`
+
+- **目的**：外部参考，包括 docs、OSS repo、官方 API、最佳实践研究。
+- **何时进入**：不熟悉的库/框架、"X 的最佳实践是什么？"、"OSS Y 怎么做这个？"、需要 web 或外部 repo 的研究。
+- **方法论**：第一手来源研究
+- **硬规则**：不做无标注推测。不发明真实源码里没有的 API 签名。
+- **Next**：`task-single-plan`（设计集成）或 `task-multi-build`（直接应用）。可以作为 background agent 派出去，父 agent 继续干别的。
+- **不用于**：仓内搜索（用 `task-explore`）。
+
+#### `task-multimodal-looker`
+
+- **目的**：描述或提取用户分享的图片、PDF、截图、图表里的信息。
+- **何时进入**：用户分享了视觉媒体；父 agent 需要媒体里的具体信息。
+- **硬规则**：先回答用户具体问题。低置信度读物明确标出。绝不编造媒体里看不到的文字。当前工具打不开分享的媒体就直说。
+- **Next**：需要提取信息的下一个技能。
+- **不用于**：纯文本输入。
+
+#### `task-repo-analyze`
+
+- **目的**：分析仓库的结构、约定、工具链和 CI 配置，产出结构化报告供下游技能参考。
+- **何时进入**：首次接触不熟悉的仓库、用户问"这个仓库怎么用？"/"分析一下这个库"、工作流需要仓库上下文但 `spec/repo-analyze/` 下没有已有分析。
+- **硬规则**：扫描前必须提示用户确认（消耗 token 较多）。扫描前先检查 `spec/repo-analyze/` 是否有已有分析。只写 `spec/repo-analyze/`，不动源代码。不编造实际文件中未观察到的信息。
+- **Next**：`task-single-plan`（带仓库上下文做计划）或任意执行技能。
+- **不用于**：用户已经熟悉、能自己描述约定的仓库。本技能的价值在于不熟悉的领域。
+
+#### `task-distill-spec`
+
+- **目的**：从现有项目文档蒸馏出 overview 级项目 spec（术语表、核心领域模型、设计原则、主干业务逻辑）为可预加载文件，让团队各自的 AI 工具共享同一基线，避免信息差、用词不统一、设计方向偏离。它是骑在详细文档之上的摘要层，不替代、不夺权。
+- **何时进入**：团队想要一份从设计/需求文档蒸馏出的、供 AI 预加载的共享基线（"蒸馏项目 spec"、"生成项目 overview/术语基线"）；或原始文档变更后需要重蒸。
+- **硬规则**：只压缩只定义，绝不推断或杜撰设计。每条 trace 回具体源（`doc:section`），trace 不到的不进。文档为主源；对话历史只贡献"已采纳"的决策（取最新），不收被否决的提案。源冲突标记暴露、不擅自消解。静态快照：源改则重蒸。准入闸：项目专有 + 非显然 + 可 trace。
+- **Next**：无。产出 overview spec 即终止；人工审阅标注是建议性的（非阻塞）。
+- **不用于**：替代详细设计文档、做或改设计决策、增量/动态更新（源改则整体重蒸）。没有源文档时凭记忆蒸馏。
+
+#### `task-doc-write`
+
+- **目的**：从代码和上下文撰写专业文档。四种模式（api、architecture、guide、readme），两种写作风格（专业风格用于技术参考，科普风格用于 README 和项目介绍）。
+- **何时进入**：用户要求写文档、README、API 参考、设计文档、ADR、用户指南或教程。
+- **硬规则**：不编造源码中未观察到的 API 签名或行为。同一文档内不混用风格。输出不留占位文字。记录当前状态，非未来愿景。
+- **Next**：`task-judge`（审查文档）或用户（直接交付）。
+- **不用于**：修补已有文档的漂移（用 `job-align`）。写内部 spec 或计划（用 `task-single-plan`）。
+
+### 1.4 审查与诊断
+
+在三个不同时点检查工作缺陷的技能。
+
+#### `task-checkpoint`（执行过程中）
+
+- **目的**：执行中检查点。验证进行中的工作仍与已批准计划一致，可以安全继续。
+- **何时进入**：多步计划每 ~3 步、任何大动作前（schema migration、部署、`git push`）、执行者报告漂移时。
+- **方法论**：执行中检查点
+- **硬规则**：跑在执行过程中，不在事前或事后。判词是 `continue` / `adjust plan` / `halt`。
+- **Next**：执行者（`continue`）、`task-single-plan`（`adjust plan`）、用户（`halt`）。
+- **不用于**：事前评审计划（用 `task-challenge`）或事后审计（用 `task-judge`）。
+
+#### `task-judge`（执行之后）
+
+- **目的**：高权威双轴审计。
+- **何时进入**：跨系统的架构选择、同一 bug 首次修复失败 ≥2 次后、完成重大改动准备宣告 done 前、安全/性能判断题。
+- **方法论**：对抗式审查、Fowler 代码坏味基线
+- **双轴保持独立，永不合并、不重排**（支持并行派发的宿主可并行）：
+  - **Standards**：代码是否符合本仓 coding standards 加 Fowler 代码坏味基线？
+  - **Spec**：代码是否符合原始 issue / PRD 要求？
+- **硬规则**：不改文件。不做没有具体建议的"你可以考虑..."。永不跨轴合并 findings；一个轴可以通过而另一个失败。
+- **Next**：`task-multi-build` / `task-yugong`（应用修复）或用户（架构批准）。
+- **不用于**：进行中的工作（用 `task-checkpoint`）。
+
+#### `task-debug`（硬 bug）
+
+- **目的**：用六阶段证据优先回路诊断硬 bug 和性能回归。
+- **何时进入**：抵抗过一次修复的硬 bug 或性能回归、"有时会挂"的 flaky、无明显原因的症状链、执行者搞不定要做第二次修复前。
+- **方法论**：六阶段证据优先回路、SHA1 debug 前缀与会话记录文件
+- **硬规则**：没建能报红的回路前不允许进入假设。不做散弹调试。debug 日志必须带 SHA1 前缀。宣告 done 前必须重跑原始复现。
+- **Next**：`task-multi-build` / `task-yugong`（应用修复）或 `task-judge`（如果根因是架构问题）。
+- **不用于**：直接首次修复能解决的 bug；`task-debug` 只处理硬的。
+
+#### `task-why-how-what`
+
+- **目的**：单一视角的一次接地推演。给定一个起点——原始问题，或对已有方案做 SCAMPER 变换后的某个角度——用黄金圈（Why → How → What）+ 第一性原理把它想透，从这一个视角产出一份结果。
+- **何时进入**：被 `job-scamper` 作为 round 0（起点=原始问题）或后续轮的某个角度派发；或直接做一次黄金圈 / 第一性原理推演。
+- **方法论**：黄金圈（Sinek：Why → How → What）；第一性原理推导。从根本目的和不可再约的约束往上推，绝不靠类比或从成品倒推。
+- **硬规则**：每次调用只一个视角，不混角度。按 Why → How → What 的顺序推，绝不从 What 倒填 Why。第一性原理，不靠类比。不做跨结果排序——那是调用者的裁决。
+- **Next**：无。返回一个视角的结果；由 `job-scamper` 汇总裁决。
+- **不用于**：在多个结果里挑最优（那是 `job-scamper`）；一次推演里塞多个角度。
 
 ---
 
-## 设计总览：三层架构
+### 1.5 工作流
 
-不同于传统扁平的多 agent 配置（所有能力平铺在同一层），本项目把三个不同关注点分成三层：
+把 `task-*` 技能串成端到端业务流的多步工作流。每个工作流文件负责路由、组合和交互策略；生产代码规则留在被调用的技能里。
 
-| 层 | 文件模式 | 能力 |
-|---|---|---|
-| 路由 | `AGENTS.md` | 读用户每条消息；按第 3.0 节的语义分类表分发到对应工作流或技能。没有关键字表、没有 ask-before-dispatch；不明确的意图路由到 `/task-clarify`。 |
-| 工作流 | `skills/job-*/SKILL.md` | 把原子技能串成端到端业务流，负责交互策略（审批门或全自动）和状态交接，并可持久化已批准的编排产物。生产代码行为留在被调用的技能。 |
-| 技能 | `skills/task-*/SKILL.md` | 原子操作的具体行为契约（Purpose / Hard constraints / Output shape / Handoff）。每个技能做好一件事。 |
+#### `job-plan`
 
-组合方式：
+- **目的**: 把模糊或多步请求走完 `task-clarify` → `task-single-plan` → `task-challenge` → 用户批准 → 持久化 plan artifacts（`plan.md` 必写；`design.md` / `guide.md` / `README.md` 按需写）到 `spec/<slug>/`。
+- **入场时机**: 请求模糊、≥ 2 步、涉及架构选择，或用户说"先做个计划"、"plan first"。
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
+- **调度规则**: 模糊请求不许跳过 `task-clarify`。第 6 步（用户批准）之前不许推进。批准前不许写 `spec/<slug>/`。写入时不许生造 step 3 未产出的可选 artifact（design/guide/README）。
+- **交接**: `job-build`（持久化完成后；执行器从磁盘读 `spec/<slug>/plan.md`）。
+- **不适用**: 单步任务（直接走 `task-yugong` 或具体技能）。
 
-- 用户发消息 → **Layer 1 (`AGENTS.md`)** 按 3.0 节的语义分类表分类意图
-- 多步意图 → 分发到 **Layer 2 (`job-*`)** 工作流，工作流再按定义好的链调 **Layer 3 (`task-*`)** 技能
-- 单步原子意图 → 直接分发到 **Layer 3 (`task-*`)** 技能
-- 意图不明 → 路由到 `/task-clarify`。router 仍然做 dispatch；澄清通过技能调用完成，不在 router 层对话
+#### `job-build`
 
-### 为什么是三层而不是平铺
+- **目的**: 按 TDD 纪律执行已批准的计划，每 ~3 步用 `task-checkpoint`。执行体是单模块 `task-yugong` 或跨模块 `task-multi-build`。
+- **入场时机**: 已有批准的计划（走完 `job-plan` 或用户直接提供）；用户说"实现"、"执行"、"落实"。
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
+- **调度规则**: 遇到 checkpoint `halt` 未经用户重置不推进。scope 变大绝不悄悄扩张，停下汇报。大状态转换前必须先 checkpoint。
+- **交接**: `job-review`（所有计划步骤完成后）。
+- **不适用**: 无计划的即兴实现（先走 `job-plan`）。
 
-- 扁平的 agent 列表会强迫用户（和 AI）背下全部能力的适用时机。分层把"当前在什么工作流"（job）、"在做什么技能"（task）、"怎么决定"（router）分开。
-- 工作流是可复用的业务流（plan-approve-build-review、安全审计、硬 bug 诊断、代码-文档对齐）。技能保持职能收窄。Router 按工具能力自适应。
-- 生产代码规则只在技能里定义。工作流只增加审批门、步骤顺序、状态交接和已批准计划产物的持久化规则，不放宽技能规则。Router 只负责派发。
+#### `job-verify`
 
-### 为什么本设计对便宜模型友好
+- **目的**: 通过 `task-checkpoint` 按已批准计划检查执行中工作（continue / adjust plan / halt）。
+- **入场时机**: 执行中"跑到哪了"、执行体出现偏移，或被 `job-build` 每 ~3 步自动派发。
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
+- **调度规则**: 不在这里做完成后审查。本工作流不动文件。
+- **交接**: `continue` 回执行体（`task-yugong` / `task-multi-build`）；`adjust plan` → `job-plan`；`halt` → 用户。
+- **不适用**: 完成后的综合审查（用 `job-review`）。
 
-大部分操作不需要顶级模型。三层结构让便宜模型也能高效低成本地完成工作：
+#### `job-debug`
 
-- **Router（第一层）** 本质是语义分类表查表（3.0 节）。AI 把用户意图匹配到表中一行，任何合格的 LLM 都做得可靠。
-- **工作流（第二层）** 是编号的分发链（`call task-A → task-B → gate → task-C`）。不用开放推理；照编号步骤走。
-- **执行类技能（第三层）** 使用明确的机器可判 predicate（测试通过、exit code 0、期望输出、HTTP 状态匹配等）作为 done 判据。分析类技能使用结构化判词和带来源的证据。
-- **有界预算**（`task-yugong` 单会话上限 13 basket；no-progress 检测阻断打转）防止跑飞的循环带来成本失控。
-- **歧义走 `/task-clarify`**：一次通过技能调用产出的聚焦澄清问题，比五轮 router 层来回猜测便宜得多。
+- **目的**: bug 一次修的诊断路径（`task-debug` 六阶段的 Phase 1-3）；硬/flaky/串行症状 bug 升级到 `job-debug-deep`。
+- **入场时机**: 用户报 bug、测试挂、行为反常；首次尝试。
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
+- **调度规则**: 第 1 阶段的反馈回路绝不跳过。修复前必须先写回归测试。第 3 阶段确认是硬 bug 就升级，不硬撑。绝不用 `sleep()` 掩盖竞态。
+- **交接**: `task-yugong`（直接修）；`job-debug-deep`（升级）。
+- **不适用**: 已经首次修失败的 bug（直接走 `job-debug-deep`）。
 
-综合来看，一个便宜模型读这套配置，可以完整跑通工作流（plan → build → verify → review），成本上限清晰、成功判据明确，**匹配甚至超过**没有结构约束的顶级模型自由发挥。成本降低、执行加速、AI 在正确条件上停下而不是无限磨。
+#### `job-align`
 
-### 文件布局
+- **目的**: 代码-文档对齐。`task-explore` 枚举文档中描述实现的地方 → 分类 stale/missing/drift → 用户批准方向 → 持久化已批准报告 → `task-yugong` / `task-multi-build` 应用编辑 → `task-judge` 再扫。
+- **入场时机**: "文档过时"、"对齐一下"、"文档和代码不一致"，或多轮重构后主动跑。
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
+- **调度规则**: 不动 spec/PRD 类"意图"文档除非用户明确同意。不做整批文本 diff，逐条改保留语义。
+- **交接**: 无（干净重扫后终止）。
+- **不适用**: 从零起草新文档（那是常规实现任务）。
 
-- `skills/task-*/SKILL.md`：原子技能
-- `skills/job-*/SKILL.md`：多步工作流
-- 工具注册（`.claude/skills/*/SKILL.md`、`.cursor/skills/*/SKILL.md`、`.opencode/skills/*/SKILL.md`）统一 symlink 指向 `skills/` 里的规范文件，所有支持的工具看到同一份行为契约。
+#### `job-review`
 
-### 各宿主工具的能力矩阵
+- **目的**: 收尾前的完成审查。链路是 `task-challenge`（计划 vs 实际 diff 逐条核对）→ `task-judge`（Standards 轴 + Spec 轴）→ `task-explore`（已知 bug 特征与残留扫描）→ 聚合结论。
+- **入场时机**: 声明任务完成前；开 PR 或合并 PR 前；feature 分支发布前；执行类技能报告收尾之后。
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
+- **调度规则**: Standards 与 Spec 两条轴分开归属，绝不合并。只要还有 `[blocker]`，绝不给 `APPROVED`。本工作流内不"顺手改一下"。
+- **交接**: 由 `task-multi-build` 或 `task-yugong` 承接 `[blocker]` 和 `[should-fix]` 项。
+- **不适用**: 执行过程中的检查（那是 `task-checkpoint`，它跑在执行**中**，本工作流跑在执行**后**）。
 
-现代 AI 编码工具已经内置了真正的 agent 编排。本配置关心的三项能力，各工具当前状态如下：
+#### `job-pr-maintain`
 
-| 能力                                                | opencode           | Cursor             | Claude Code                                                                    | VS Code + Copilot                            |
-| --------------------------------------------------- | ------------------ | ------------------ | ------------------------------------------------------------------------------ | -------------------------------------------- |
-| 单轮内并发派发 subagent                             | 原生 subagent 支持并发（`task` 工具跑内置 `general`/`explore`/`scout` + `.opencode/agents/*` 自定义 agent，独立 child session 并行）；但 `task-*` / `job-*` 项目能力挂成 skill——通过 `skill(name=...)` 加载、在父上下文**顺序执行**） | 是（内置 `explore`/`bash`/`browser`；自定义 `.cursor/skills/*/SKILL.md`；嵌套 2 层） | 是（`.claude/skills/*/SKILL.md`；Task 工具并发调用） | 是（自动扫 `.claude/skills/*/SKILL.md`；`agent/runSubagent`；开启配置项后嵌套 5 层） |
-| 后台任务带完成回调 / 通知                           | 是（subagent 派发时 `run_in_background=true`；完成后 `<system-reminder>` 通知） | 是（后台 subagent + `stop`/`subagentStop` hook；Cloud Agent + iOS 推送 / Slack / Live Activity） | 部分（Bash 支持 `run_in_background=true`；无独立后台 subagent 回调） | 是（`chat.notifyWindowOnResponseReceived`；Copilot CLI 后台 session；Hooks Preview） |
-| Agent 模式 / 人格间的自动状态交接                   | 是（父 → 子 subagent 带 continuation session id；`task(task_id=…)` 恢复完整上下文） | 是（父 → 子；本地 ↔ 云；主聊天 ↔ 侧栏聊天带上下文；可按 ID 恢复子 subagent） | 部分（子 subagent 返最终结果给父；父来编排下一次派发） | 是（`handoffs:` frontmatter 可选 `send: true` 自动提交；Session Target 下拉；Continue in Cloud；Plan → Agent） |
+- **目的**: 维护一个已开 PR 的评审生命周期。每轮对当前 diff 从第一性原理重新 review（用 `task-judge`，绝不校验外部工具的修复标记），读取人类 reviewer 的评论，派执行技能修复，更新 PR 描述，回复评审线程。
+- **入场时机**: 用户要求处理 PR 评审意见、更新 PR 描述、或回复 PR 反馈。
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
+- **职责边界**: 本工作流拥有 GitHub API 交互（读评论、更新描述、回复线程）。不拥有本地 git 操作（diff、commit、branch、push），那些仍归执行技能自带的 git 纪律管。
+- **调度规则**: review 每轮从头做；自动工具的修复标记、"resolved" 标记一律不读不校验。GitHub 写操作需要用户明确授权，且需用户确认审阅结果后才 post。若 review 无问题且无人类评论需回应，则不 post 任何内容。本工作流内不 push 代码；push 是执行技能的动作，需单独授权。
+- **交接**: `job-security-review`（diff 触及安全面时）。用户（确认审阅结果、授权 GitHub 写操作和 push）。
+- **不适用**: 从零创建新 PR（那是执行技能加 push + pr-open 授权的事）。没有 PR 的纯代码审查（用 `job-review`）。
 
-AI 运行时必须遵守的行为差异（各工具的 dispatch 机制、工作流链语义、opencode built-in 消歧）在 `AGENTS.md` 第 3.0.1 节。各工具的安装步骤和完整配置见 [`README_zh.md`](README_zh.md)。
+#### `job-security-review`
+
+- **目的**: 端到端安全审计。链路是 `task-explore`（定位安全敏感面）→ 独立的 `task-judge` 与 `task-librarian` 检查（宿主支持时并行）→ 必要时用 `task-debug` 深挖不清楚的漏洞路径 → 聚合结论。
+- **入场时机**: 上线带安全面的代码前（认证、会话、加密、密钥/令牌处理、输入校验、反序列化）；开涉及安全代码的 PR 前；发版周期性巡检；发现安全相关 bug、需先把利用面画清楚再动手修的时候。
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
+- **调度规则**: 子智能体的发现按来源分列，不跨源合并或重排。`[blocker]` 必须给出具体失效模式。最终结论就一句 `APPROVED` / `CHANGES-REQUESTED` / `BLOCKED`。
+- **交接**: 由 `task-multi-build` 或 `task-yugong` 承接 `[blocker]` 和 `[should-fix]` 项。
+- **不适用**: 非安全类的一般正确性审查（用 `job-review`）。
+
+#### `job-debug-deep`
+
+- **目的**: 硬 bug 诊断的端到端流程。驱动 `task-debug` 走完六阶段证据优先回路；第 3 阶段按需派发 `task-librarian` 拉外部知识；第 4 阶段发现根因是架构问题时升级到 `task-judge`；第 5 阶段把修复交给 `task-yugong`（单模块）或 `task-multi-build`（跨模块）；第 6 阶段校验清理。
+- **入场时机**: 一次简单修没搞定的硬 bug 或性能回归；"有时候会挂"的 flake；一串没有明显起因的症状；对同一个 bug 准备做第二次修复前。
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
+- **调度规则**: 没有能报红的反馈回路就绝不进假设阶段。debug 日志必须带 SHA1 前缀、并配套 `spec/debug/<sha1_short>.md` 记录。回归测试要在**修改之前**写在正确的 seam 上。绝不用 `sleep()` 掩盖竞态；第 6 阶段清理绝不能跳。
+- **交接**: `task-yugong`（单模块修复）或 `task-multi-build`（跨模块修复）；可选在第 6 阶段末尾再做一次 `task-judge` 审查。
+- **不适用**: 首次尝试就能修好的简单 bug（直接走 `job-debug` 或 `task-yugong`）。
+
+#### `job-spiral-up`
+
+- **目的**: 单会话自主 supervisor。创建 worktree 分支，串起 `task-single-plan` → 内联执行（basket 级重试）→ review 直到 `Done`。自维护 loop table 于 `spec/<slug>/job-spiral-up.md`；原子技能输出不修改。每 cycle 在 spiral 分支上 commit。
+- **入场时机**: 用户明确要求单会话内自主跑到收敛（"循环直到结束""一直到结束""不要停，直到完成""无限循环"等），并给出有界目标。"无限循环"只表达意图，实际执行以 `Done` 为终止。
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
+- **调度规则**: 不派 `task-yugong` / `task-multi-build` / `task-clarify` / `job-plan` / `job-build` / `job-review` / `job-security-review`。plan step 内联执行。basket 失败必须命名实质差异化的下一次尝试才能重试；否则记为 stuck-point fix item。fix items 按 LIFO 处理。stall 触发对称 re-planning。
+- **终止状态**: 仅 `Done`。所有 plan step 完成且无未解决 fix item 时到达。worktree 分支留给用户 merge 或 discard。
+- **不适用**: 模糊请求、跨 session 恢复、需要不可逆共享影响操作的计划（这些应在 planning 阶段被 `task-challenge` 拒绝）。
+
+#### `job-scamper`
+
+- **目的**: 多角度方案构建。先产出初始方案，然后循环——对当前方案做 SCAMPER 七角度拆解，舍弃不合理的和已见过的，对每个存活角度派 `task-why-how-what`，再用二八聚焦 + 逻辑自洽重估最优——直到某一轮产不出新的合理角度。追求全面方案，不是找茬。
+- **入场时机**: 用户想让一个方案、计划、设计或决策经系统的多角度分析发展成全面整体。领域通用，不限编码。
+- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
+- **调度规则**: 每个视角作为独立隔离的 `task-why-how-what` 运行；视角按文件分开，彼此看不到对方推理。编排者自己从不推演某个视角——它生成七个 SCAMPER 角度，套两道过滤（合理性、新颖性），派出存活角度，用二八 + 自洽裁决。绝不为凑满七个而派不合理角度。终止判据是"某一轮产不出新的合理角度"——有限且逐轮消耗的角度空间自然收敛。
+- **Next**: 无。返回全面方案和它逐轮的演化。
+- **不用于**: 单一视角的一次推演（用 `task-why-how-what`）；对已有答案做对抗式找茬。
 
 ---
 
-## 第一部分：方法论
+## 第二部分：场景
+
+三个真实开发情景到底。每个都展示技能按什么顺序触发，方法论如何在每一步塑造行为。
+
+### 场景 A：模糊请求，中等规模任务
+
+**请求**（用户，不精确）"给 app 加认证。"
+
+**链**：`task-clarify → task-single-plan → task-challenge → task-multi-build → task-checkpoint（检查点） → task-judge`
+
+**走一遍：**
+
+1. **`task-clarify`** 批判请求本身。第一性原理分解问"认证"解决什么问题。候选包括 (a) 防止未授权访问，(b) 个性化体验，(c) 按用户计费。列出假设（"SSO 需要吗？密码重置需要吗？SSO 提供商？"）、歧义（"session 还是 JWT？移动端？"）、AI 失败模式（"会用 OAuth 过度设计，其实一个简单 session cookie 就够"）。推荐唯一最有价值的澄清问题"用户按账户付费，还是就是不让陌生人看私有数据？"
+2. 用户答："就是不让陌生人看私有数据。email + 密码。不用 SSO。"
+3. **`task-single-plan`** 产出书面计划。第一性原理推导问不可再简约的约束是 (a) email + 密码、(b) session-based（未提移动端）、(c) 密码重置走邮件、(d) 已有框架的 session 中间件。端到端垂直切片排 6 个原子步骤，每步端到端可 demo，包括 `users` 表 migration、注册接口、登录接口、session 中间件、登出接口、密码重置流程。每步命名了 touch 的文件和预期可观察结果。停。等审批。
+4. **`task-challenge`** 用对抗式审查姿势批。发现第 3 步没指定哈希算法；第 4 步没说 session 过期后怎样；第 3 步没限速（暴力破解风险）；计划没有回滚故事。返回 findings；计划被修订。
+5. 用户批准修订后的计划。
+6. **`task-multi-build`** 执行。TDD 纪律要求每一步都先在 seam 上写失败的行为测试、看它以正确原因失败、实现、重构。背景派 `task-librarian` 从 OWASP 文档确认 bcrypt cost factor 具体推荐值（第一手来源研究）。派 `task-explore` 找可复用的现有中间件。
+7. **`task-checkpoint`** 在第 3 步后触发（约 1/3 处）。只读检查点。读上次 commit 以来的 diff；确认执行者按 `task-challenge` 要求加了限速。判词是 `continue`。
+8. 第 6 步后，`task-multi-build` 汇报功能完成，测试全过。
+9. **`task-judge`** 跑双轴对抗式审计。Standards 轴发现一处基本类型偏执（用裸字符串代表密码而不是领域类型）；判断题，不是硬违反。Spec 轴确认 `task-challenge` 提出的每处歧义都在代码里解决了。判词是批准，附一条 `[should-fix]`（基本类型偏执）。交给 `task-multi-build` 做小 follow-up。
+
+**触发的方法论**：分解、推导、垂直切片、对抗审查（两次）、TDD、第一手来源、检查点、Fowler 坏味。
+
+### 场景 B：目的地模糊的长周期项目
+
+**请求**（技术负责人，大 scope）"把 web app 从框架 A 迁到框架 B。"
+
+**链**：`task-clarify → task-strategy（画图） → 票据（research / prototype / grilling / task） → task-strategy（工作图，一次会话解一张） → task-single-plan（每张 task 票）→ task-multi-build → task-checkpoint → task-judge`
+
+**走一遍：**
+
+1. **`task-clarify`** 分解请求。
+   - **根本问题**：多半是"框架 A EOL / 性能天花板 / 招人困难"。
+   - **歧义**："迁"可以指全面重写、增量式绞杀、只做新模块。
+   - **推荐**："命名终点线。'迁完了'具体是什么？B 上做到功能对等，还是新功能上 B、老功能留 A？"
+2. 用户答："全部对等。所有新功能必须在 B 上。老功能碰到就迁，但那些故意休眠的功能我们要一个计划。"
+3. **`task-strategy`** 画 wayfinder 地图。战争迷雾制图，命名目的地（"所有功能在 B 上跑、功能对等、生产环境没有 A"）。然后画能精确的部分。
+   - `[task] 在 A 旁边搭起 B（dual-stack build）。`
+   - `[research] B 支持我们的 SSO adapter 吗？对着 SSO 厂商文档核实。`
+   - `[research] B 支持我们的数据可视化库吗？对着库的 B 兼容矩阵核实。`
+   - `[prototype] 移植一个代表性屏幕。测 LCP、bundle size、开发者速度。`
+   - `[grilling] 那 12 个没人用、也没人有权删的休眠功能怎么办？`
+   - `[task] 切换策略：路由层绞杀 vs 按功能 feature flag。`
+   其他都留在 `Not yet specified`。
+4. 第 2 次会话：`task-strategy` 挑第一张 `[research] SSO adapter`。派 `task-librarian`。librarian 读 SSO 厂商的 B 兼容文档（第一手来源研究），交叉对照厂商的公开 SDK repo，发现一个坑（session refresh 在不同 adapter 间行为不同）。票据结案带 findings；`Decisions so far` 追加一行。会话结束。
+5. 第 3 次会话跑 `[prototype] 移植一个代表性屏幕`。派 `task-quick-verify`。UI 分支用不同 B 路由模式建三个版本，测 LCP，把切换栏放在演示里让团队点。胜出者记进决策日志。票据结案。
+6. 第 4 次会话：`[grilling] 休眠功能`。派 `task-clarify` 追问用户。用户同意对 12 个中的 8 个做正式弃用投票。
+7. 票据解决过程中，雾变成新的清晰票据，如 `[task] 按 librarian 发现迁 SSO 层`、`[task] 采用原型胜出的路由模式`、`[task] 弃用批准的 8 个功能`。
+8. 每张 task 票据在新的会话里被拿起时，走 **`task-single-plan`**（单会话计划）→ **`task-challenge`**（评审）→ **`task-multi-build`**（执行）→ **`task-checkpoint`**（检查点）→ **`task-judge`**（审计）。
+9. 每次会话后，`task-strategy` 用票据结论更新地图，并把新可精确的雾升级成新票据。
+
+**触发的方法论**：分解、战争迷雾制图、第一手来源、双分支原型，加上每张 task 票据的完整场景 A 链。
+
+**关键纪律**：每次会话解不超过一张非 research 票据。"顺便再解一张小的"的诱惑破坏整张图的演化，是要拒绝的。
+
+### 场景 C：首次修复失败的硬 bug
+
+**请求**（开发者，抓狂）"checkout 测试在 CI 上偶尔挂。我加了 `sleep(1)` 修了一次，还是间歇挂。"
+
+**链**：`task-yugong（首次修复尝试，失败）→ task-debug（六阶段诊断）→ task-multi-build（真修复，TDD）→ task-judge（如果是架构问题就审）`
+
+**走一遍：**
+
+1. **`task-yugong`** 是用户第一次说"修这个测试"时运行的技能。它试了 `sleep(1)`。表面修好了，flakiness 又回来了。`task-yugong` 正确地停下汇报，而不是加 `sleep(2)`。它没有通过打补丁掩盖症状来悄悄扩张 scope。
+2. 用户说"还是 flaky"。这是 `task-debug` 的触发信号。
+3. **`task-debug` 第 1 阶段**：建反馈回路。本地用 `--repeat 200` 跑测试。观察到 200 次里 4 次失败。回路能报红、可确定性够（4/200 可重现）、快（30 秒）、可 agent 单独跑。记下反馈回路命令。
+4. **`task-debug` 第 2 阶段**：复现 + 最小化。确认失败是用户提到的具体症状（第 87 行那个具体 assertion），不是附近另一个。把测试砍到仍然 3/200 挂的最小函数体。剩下的每个元素都有承重。
+5. **`task-debug` 第 3 阶段**（假设）。生成 4 个可证伪的排序假设：
+   - (a) 数据库事务隔离导致 read-your-writes 在并发测试跑时失败。若串行化测试套件后 flakiness 消失，则假设成立。
+   - (b) assertion 里的 `Date.now()` 跨了秒边界。若冻结时间后 flakiness 消失，则假设成立。
+   - (c) checkout 服务在模块级变量里缓存了东西。可证伪的做法是测试间清模块缓存。
+   - (d) 一个共享 test fixture 被无关的测试改动了。可证伪的做法是单独跑这个测试。
+   给用户看排序列表。用户按领域知识重排："我们最近给 checkout 服务加了 Redis 缓存" → (c) 升到 #1。
+6. **`task-debug` 第 4 阶段**（植入观察）。给出 SHA1 会话 `a3f9c2e1`、脱敏后的 `spec/debug/a3f9c2e1.md` 内容，以及一条针对性日志 `console.log("[DEBUG-a3f9c2e1] checkout cache state:", cache)`。可写执行体应用方案并返回 cache 证据。证据确认假设 (c)，上一次测试的模块级缓存活到了同一进程里的下一次测试。
+7. **`task-multi-build` 第 5 阶段**（修 + 回归测试）。在正确 seam 上写回归测试（test-suite 级 `afterEach` 断言缓存清空）。看它以正确原因失败，然后修 checkout 服务暴露 `resetCache()` 方法（或者更好，用依赖注入让缓存 per-instance）。测试套件转绿。
+8. **`task-debug` 第 6 阶段**（验证清理 + post-mortem）。重读执行体证据。`grep -rn "[DEBUG-a3f9c2e1]"` 返回零条匹配，debug 记录已整理或删除，原始 `--repeat 500` 回路报告 0 次失败。它为将来的 commit 或 PR message 给出正确假设"修复 flaky checkout 测试，由模块级 Redis 缓存跨测试运行残留导致。"
+9. 如果在第 4 阶段发现根因是架构错误（比如共享可变状态在整个代码库大量使用），`task-debug` 会先交给 **`task-judge`** 出架构判断，再由判断圈定修复范围。
+
+**触发的方法论**：循环工程（正确停下而不是加 `sleep`）、六阶段回路、SHA1 标签、TDD（用于回归测试）、对抗式审计（如果升级）。
+
+**关键纪律**：flaky 测试里的 `sleep()` 是红旗，说明底层 race 从未诊断过。下一个触发的技能是 `task-debug`，不是 `sleep(2)`。
+
+---
+
+## 附录：方法论
 
 命名方法论是行为的原子单位。每种方法论都有明确的触发条件、硬规则、反模式和一个具体的微观例子。先扫下面的表格，然后逐节读。
 
@@ -209,11 +528,11 @@ Martin Fowler 的《Refactoring》第 3 章列了一组"代码坏味"，稳定�
 
 ### 循环工程
 
-`task-yugong`（愚公，移山的老人）的默认执行模式。拿一个界定清楚的任务，在完整纪律下磨到验证通过。主任务不委派。每步最多重试 3 次。如果任务比预期大，**停下汇报**给用户；绝不悄悄扩张范围。
+`task-yugong`（愚公，移山的老人）。拿一个界定清楚的任务，在完整纪律下磨到验证通过。主任务不委派。每步最多重试 3 次。如果任务比预期大，**停下汇报**给用户；绝不悄悄扩张范围。
 
 大多数真实工作不是多域的，也不受益于委派。委派带来协调成本、责任归属模糊、专家输出冲突的风险。一个专注的执行者能完成一个协调团队用同样时间才辩完的活。
 
-任何单一 scope 明确的具体任务。用户给一个执行任务没指名技能时，`task-yugong` 是**默认技能**。
+任何单一 scope 明确的具体任务。用户没指名技能时，由 `task-yugong` 执行。
 
 
 - **悄悄扩张范围**：任务变大；`task-yugong` 继续干，做完了用户没要求的东西。
@@ -342,392 +661,3 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 
 ---
 
-## 第二部分：技能与工作流
-
-能力按工作阶段分组。每个条目列出目的、何时进入、内嵌方法论、handoff 目标、以及**何时不用**。
-
-### 2.1 决策与规划
-
-在写代码之前决定**做什么**、**按什么顺序**的技能。
-
-#### `task-clarify`
-
-- **目的**：批判用户请求本身，不是代码。列出隐藏假设、模糊之处、可能的 AI 失败模式；只推荐一个最有价值的澄清问题。
-- **何时进入**：请求模糊、比一轮能处理的要大、或者藏着用户自己没注意到的矛盾。
-- **方法论**：第一性原理分解
-- **硬规则**：未获用户批准不推进。不出计划。不动实现。
-- **Next**：`task-single-plan`（用户澄清后）
-- **不用于**：已经精确的请求。直接跳过去 `task-single-plan` 浪费一轮。
-
-#### `task-single-plan`
-
-- **目的**：产出一次执行会话能完成的书面计划（大工作则出 spec/PRD）。
-- **何时进入**：多步工作（≥3 步）、有架构选择、跨多个模块、scope 不明显。
-- **方法论**：第一性原理推导、端到端垂直切片、扩展 → 迁移 → 收缩
-- **硬规则**：写完计划就停。等审批。
-- **Next**：`task-challenge`（评审）→ `task-multi-build` 或 `task-yugong`（执行）。极大的跨会话工作先交给 `task-strategy`。
-- **不用于**：跨多次会话、目的地模糊的工作（用 `task-strategy`）。
-
-#### `task-challenge`
-
-- **目的**：挑一份书面计划在清晰度、完整度、可验证性三个维度上的毛病。每步查三项。
-  - 文件命名了吗？
-  - 可观察结果写了吗？
-  - 验证步骤定义了吗？
-- **何时进入**：书面计划存在（聊天里、文件里、或 `task-single-plan` 产出）需要严格评审再进入实现。
-- **方法论**：对抗式审查
-- **硬规则**：不改计划自己；只返回 findings。不做掩盖真缺陷的客套模糊。
-- **Next**：`task-single-plan`（修订）或 `task-multi-build` / `task-yugong`（批准后执行）。
-- **不用于**：评审实现好的代码（那是 `task-judge`）。
-
-#### `task-quick-verify`
-
-- **目的**：写一次性代码回答一个设计问题，当廉价具体产物比再讨论更快能给出答案时。
-- **何时进入**："这样感觉对吗？" / "该长什么样？" / "这个状态机在边界情况到底怎么走？"
-- **方法论**：双分支原型法
-- **硬规则**：第一天就是一次性的。无测试、无打磨、无持久化。commit 到废弃分支不进 main。
-- **Next**：`task-single-plan`（把验证的决定 fold 进真计划）或 `task-multi-build`（集成）。
-- **不用于**：建生产功能。看起来忍不住合并进 main 时，记住这个分支是废弃的。
-
-#### `task-strategy`
-
-- **目的**：把大的多会话工作画成一张共享决策票据地图。每次会话解一张票，直到通往目的地的路径清晰。
-- **何时进入**：工作大到装不进单次 agent session、通往目的地路径模糊、执行前还有多个决策待决。
-- **方法论**：战争迷雾制图
-- **硬规则**：绝不冲向目的地。每次会话解不超过一张非 research 票据。
-- **Next**：`task-librarian`（research 票）、`task-quick-verify`（prototype 票）、`task-clarify`（grilling 票）、`task-single-plan`（task 票准备好执行规划时）。
-- **不用于**：能装进一次会话的小任务。`task-strategy` 的开销只在真正的多会话工作里值得。
-
-### 2.2 执行
-
-写代码、产出产物的技能。
-
-#### `task-multi-build`
-
-- **目的**：多域实施者，主动向专家委派。跨多个模块执行改动；宿主支持并行派发时并行派发独立专家。
-- **何时进入**：任务跨多个模块或系统，能从委派 `task-explore` / `task-librarian` / `task-judge` / `task-multimodal-looker` 中受益。
-- **方法论**：TDD 纪律、执行中检查点（每 ~3 步派）
-- **硬规则**：不做类型抑制、不吞异常、不做未确认的破坏性 git 动作、不做 bug 修复过程中未请求的重构。
-- **Next**：`task-judge`（实现后审计）。
-- **不用于**：单一 scope 任务。用 `task-yugong`。多域协调成本只在工作真正跨域时值得。
-
-#### `task-yugong`（愚公，默认技能）
-
-- **命名由来**：愚公移山的寓言里，愚公一点一点地移山。这是"有界、耐心、不委派"的劳动典范，毅力最终换来外力相助。这个技能是默认执行者。拿一个界定清楚的任务，磨、验证，scope 变大就停。
-- **目的**：拿一个界定清楚的任务，在完整工程纪律下磨到验证通过。用户没指名技能时，默认就是它。
-- **何时进入**：任何单一 scope 的具体实现任务。
-- **方法论**：循环工程、TDD 纪律
-- **硬规则**：主任务不委派。每步最多重试 3 次。任务比预期大就**停下汇报**；绝不悄悄扩张。
-- **Next**：无（结束就完）。中途可咨询 `task-checkpoint`，结尾可咨询 `task-judge`。
-- **不用于**：真正需要专家委派的多域任务（用 `task-multi-build`）。
-
-#### `task-general`
-
-- **目的**：跨不相关系统的混合任务协调器，没有专家技能覆盖时的兜底。拆解并派发专家；只有宿主支持并行派发时才并行。
-- **何时进入**：任务混合研究和执行，跨几个不相关系统，没有单一专家技能能覆盖。
-- **硬规则**：不吞属于 `task-explore`、`task-librarian`、`task-judge`、`task-multimodal-looker` 或 `task-debug` 的专家活；交给他们。
-- **Next**：各子任务对应的专家技能；聚合结论后交回用户。
-- **不用于**：能装进单一技能的任务。`task-general` 是兜底，不是首选。
-
-### 2.3 搜索与研究
-
-不改文件、只搜集信息的技能。
-
-#### `task-explore`
-
-- **目的**：本仓库内的上下文 grep。回答"X 在哪定义？"、"哪个文件处理 Y？"、跨切面模式搜索。
-- **何时进入**：用户问某物在哪定义、哪个文件处理什么；无法从内存回答的跨切面模式搜索。
-- **硬规则**：不改文件。不做超出搜索结果的推测。不概述没打开的文件。第一遍搜索完就停，除非用户要求继续。
-- **Next**：`task-multi-build` / `task-yugong`（修改找到的东西）或 `task-single-plan`（基于发现制定计划）。
-- **不用于**：外部研究（用 `task-librarian`）。
-
-#### `task-librarian`
-
-- **目的**：外部参考，包括 docs、OSS repo、官方 API、最佳实践研究。
-- **何时进入**：不熟悉的库/框架、"X 的最佳实践是什么？"、"OSS Y 怎么做这个？"、需要 web 或外部 repo 的研究。
-- **方法论**：第一手来源研究
-- **硬规则**：不做无标注推测。不发明真实源码里没有的 API 签名。
-- **Next**：`task-single-plan`（设计集成）或 `task-multi-build`（直接应用）。可以作为 background agent 派出去，父 agent 继续干别的。
-- **不用于**：仓内搜索（用 `task-explore`）。
-
-#### `task-multimodal-looker`
-
-- **目的**：描述或提取用户分享的图片、PDF、截图、图表里的信息。
-- **何时进入**：用户分享了视觉媒体；父 agent 需要媒体里的具体信息。
-- **硬规则**：先回答用户具体问题。低置信度读物明确标出。绝不编造媒体里看不到的文字。当前工具打不开分享的媒体就直说。
-- **Next**：需要提取信息的下一个技能。
-- **不用于**：纯文本输入。
-
-#### `task-repo-analyze`
-
-- **目的**：分析仓库的结构、约定、工具链和 CI 配置，产出结构化报告供下游技能参考。
-- **何时进入**：首次接触不熟悉的仓库、用户问"这个仓库怎么用？"/"分析一下这个库"、工作流需要仓库上下文但 `spec/repo-analyze/` 下没有已有分析。
-- **硬规则**：扫描前必须提示用户确认（消耗 token 较多）。扫描前先检查 `spec/repo-analyze/` 是否有已有分析。只写 `spec/repo-analyze/`，不动源代码。不编造实际文件中未观察到的信息。
-- **Next**：`task-single-plan`（带仓库上下文做计划）或任意执行技能。
-- **不用于**：用户已经熟悉、能自己描述约定的仓库。本技能的价值在于不熟悉的领域。
-
-#### `task-distill-spec`
-
-- **目的**：从现有项目文档蒸馏出 overview 级项目 spec（术语表、核心领域模型、设计原则、主干业务逻辑）为可预加载文件，让团队各自的 AI 工具共享同一基线，避免信息差、用词不统一、设计方向偏离。它是骑在详细文档之上的摘要层，不替代、不夺权。
-- **何时进入**：团队想要一份从设计/需求文档蒸馏出的、供 AI 预加载的共享基线（"蒸馏项目 spec"、"生成项目 overview/术语基线"）；或原始文档变更后需要重蒸。
-- **硬规则**：只压缩只定义，绝不推断或杜撰设计。每条 trace 回具体源（`doc:section`），trace 不到的不进。文档为主源；对话历史只贡献"已采纳"的决策（取最新），不收被否决的提案。源冲突标记暴露、不擅自消解。静态快照：源改则重蒸。准入闸：项目专有 + 非显然 + 可 trace。
-- **Next**：无。产出 overview spec 即终止；人工审阅标注是建议性的（非阻塞）。
-- **不用于**：替代详细设计文档、做或改设计决策、增量/动态更新（源改则整体重蒸）。没有源文档时凭记忆蒸馏。
-
-#### `task-doc-write`
-
-- **目的**：从代码和上下文撰写专业文档。四种模式（api、architecture、guide、readme），两种写作风格（专业风格用于技术参考，科普风格用于 README 和项目介绍）。
-- **何时进入**：用户要求写文档、README、API 参考、设计文档、ADR、用户指南或教程。
-- **硬规则**：不编造源码中未观察到的 API 签名或行为。同一文档内不混用风格。输出不留占位文字。记录当前状态，非未来愿景。
-- **Next**：`task-judge`（审查文档）或用户（直接交付）。
-- **不用于**：修补已有文档的漂移（用 `job-align`）。写内部 spec 或计划（用 `task-single-plan`）。
-
-### 2.4 审查与诊断
-
-在三个不同时点检查工作缺陷的技能。
-
-#### `task-checkpoint`（执行过程中）
-
-- **目的**：执行中检查点。验证进行中的工作仍与已批准计划一致，可以安全继续。
-- **何时进入**：多步计划每 ~3 步、任何大动作前（schema migration、部署、`git push`）、执行者报告漂移时。
-- **方法论**：执行中检查点
-- **硬规则**：跑在执行过程中，不在事前或事后。判词是 `continue` / `adjust plan` / `halt`。
-- **Next**：执行者（`continue`）、`task-single-plan`（`adjust plan`）、用户（`halt`）。
-- **不用于**：事前评审计划（用 `task-challenge`）或事后审计（用 `task-judge`）。
-
-#### `task-judge`（执行之后）
-
-- **目的**：高权威双轴审计。
-- **何时进入**：跨系统的架构选择、同一 bug 首次修复失败 ≥2 次后、完成重大改动准备宣告 done 前、安全/性能判断题。
-- **方法论**：对抗式审查、Fowler 代码坏味基线
-- **双轴保持独立，永不合并、不重排**（支持并行派发的宿主可并行）：
-  - **Standards**：代码是否符合本仓 coding standards 加 Fowler 代码坏味基线？
-  - **Spec**：代码是否符合原始 issue / PRD 要求？
-- **硬规则**：不改文件。不做没有具体建议的"你可以考虑..."。永不跨轴合并 findings；一个轴可以通过而另一个失败。
-- **Next**：`task-multi-build` / `task-yugong`（应用修复）或用户（架构批准）。
-- **不用于**：进行中的工作（用 `task-checkpoint`）。
-
-#### `task-debug`（硬 bug）
-
-- **目的**：用六阶段证据优先回路诊断硬 bug 和性能回归。
-- **何时进入**：抵抗过一次修复的硬 bug 或性能回归、"有时会挂"的 flaky、无明显原因的症状链、执行者搞不定要做第二次修复前。
-- **方法论**：六阶段证据优先回路、SHA1 debug 前缀与会话记录文件
-- **硬规则**：没建能报红的回路前不允许进入假设。不做散弹调试。debug 日志必须带 SHA1 前缀。宣告 done 前必须重跑原始复现。
-- **Next**：`task-multi-build` / `task-yugong`（应用修复）或 `task-judge`（如果根因是架构问题）。
-- **不用于**：直接首次修复能解决的 bug；`task-debug` 只处理硬的。
-
-#### `task-why-how-what`
-
-- **目的**：单一视角的一次接地推演。给定一个起点——原始问题，或对已有方案做 SCAMPER 变换后的某个角度——用黄金圈（Why → How → What）+ 第一性原理把它想透，从这一个视角产出一份结果。
-- **何时进入**：被 `job-scamper` 作为 round 0（起点=原始问题）或后续轮的某个角度派发；或直接做一次黄金圈 / 第一性原理推演。
-- **方法论**：黄金圈（Sinek：Why → How → What）；第一性原理推导。从根本目的和不可再约的约束往上推，绝不靠类比或从成品倒推。
-- **硬规则**：每次调用只一个视角，不混角度。按 Why → How → What 的顺序推，绝不从 What 倒填 Why。第一性原理，不靠类比。不做跨结果排序——那是调用者的裁决。
-- **Next**：无。返回一个视角的结果；由 `job-scamper` 汇总裁决。
-- **不用于**：在多个结果里挑最优（那是 `job-scamper`）；一次推演里塞多个角度。
-
----
-
-### 2.5 工作流
-
-把 `task-*` 技能串成端到端业务流的多步工作流。每个工作流文件负责路由、组合和交互策略；生产代码规则留在被调用的技能里。
-
-#### `job-plan`
-
-- **目的**: 把模糊或多步请求走完 `task-clarify` → `task-single-plan` → `task-challenge` → 用户批准 → 持久化 plan artifacts（`plan.md` 必写；`design.md` / `guide.md` / `README.md` 按需写）到 `spec/<slug>/`。
-- **入场时机**: 请求模糊、≥ 2 步、涉及架构选择，或用户说"先做个计划"、"plan first"。
-- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
-- **调度规则**: 模糊请求不许跳过 `task-clarify`。第 6 步（用户批准）之前不许推进。批准前不许写 `spec/<slug>/`。写入时不许生造 step 3 未产出的可选 artifact（design/guide/README）。
-- **交接**: `job-build`（持久化完成后；执行器从磁盘读 `spec/<slug>/plan.md`）。
-- **不适用**: 单步任务（直接走 `task-yugong` 或具体技能）。
-
-#### `job-build`
-
-- **目的**: 按 TDD 纪律执行已批准的计划，每 ~3 步用 `task-checkpoint`。执行体是单模块 `task-yugong` 或跨模块 `task-multi-build`。
-- **入场时机**: 已有批准的计划（走完 `job-plan` 或用户直接提供）；用户说"实现"、"执行"、"落实"。
-- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
-- **调度规则**: 遇到 checkpoint `halt` 未经用户重置不推进。scope 变大绝不悄悄扩张，停下汇报。大状态转换前必须先 checkpoint。
-- **交接**: `job-review`（所有计划步骤完成后）。
-- **不适用**: 无计划的即兴实现（先走 `job-plan`）。
-
-#### `job-verify`
-
-- **目的**: 通过 `task-checkpoint` 按已批准计划检查执行中工作（continue / adjust plan / halt）。
-- **入场时机**: 执行中"跑到哪了"、执行体出现偏移，或被 `job-build` 每 ~3 步自动派发。
-- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
-- **调度规则**: 不在这里做完成后审查。本工作流不动文件。
-- **交接**: `continue` 回执行体（`task-yugong` / `task-multi-build`）；`adjust plan` → `job-plan`；`halt` → 用户。
-- **不适用**: 完成后的综合审查（用 `job-review`）。
-
-#### `job-debug`
-
-- **目的**: bug 一次修的诊断路径（`task-debug` 六阶段的 Phase 1-3）；硬/flaky/串行症状 bug 升级到 `job-debug-deep`。
-- **入场时机**: 用户报 bug、测试挂、行为反常；首次尝试。
-- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
-- **调度规则**: 第 1 阶段的反馈回路绝不跳过。修复前必须先写回归测试。第 3 阶段确认是硬 bug 就升级，不硬撑。绝不用 `sleep()` 掩盖竞态。
-- **交接**: `task-yugong`（直接修）；`job-debug-deep`（升级）。
-- **不适用**: 已经首次修失败的 bug（直接走 `job-debug-deep`）。
-
-#### `job-align`
-
-- **目的**: 代码-文档对齐。`task-explore` 枚举文档中描述实现的地方 → 分类 stale/missing/drift → 用户批准方向 → 持久化已批准报告 → `task-yugong` / `task-multi-build` 应用编辑 → `task-judge` 再扫。
-- **入场时机**: "文档过时"、"对齐一下"、"文档和代码不一致"，或多轮重构后主动跑。
-- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
-- **调度规则**: 不动 spec/PRD 类"意图"文档除非用户明确同意。不做整批文本 diff，逐条改保留语义。
-- **交接**: 无（干净重扫后终止）。
-- **不适用**: 从零起草新文档（那是常规实现任务）。
-
-#### `job-review`
-
-- **目的**: 收尾前的完成审查。链路是 `task-challenge`（计划 vs 实际 diff 逐条核对）→ `task-judge`（Standards 轴 + Spec 轴）→ `task-explore`（已知 bug 特征与残留扫描）→ 聚合结论。
-- **入场时机**: 声明任务完成前；开 PR 或合并 PR 前；feature 分支发布前；执行类技能报告收尾之后。
-- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
-- **调度规则**: Standards 与 Spec 两条轴分开归属，绝不合并。只要还有 `[blocker]`，绝不给 `APPROVED`。本工作流内不"顺手改一下"。
-- **交接**: 由 `task-multi-build` 或 `task-yugong` 承接 `[blocker]` 和 `[should-fix]` 项。
-- **不适用**: 执行过程中的检查（那是 `task-checkpoint`，它跑在执行**中**，本工作流跑在执行**后**）。
-
-#### `job-pr-maintain`
-
-- **目的**: 维护一个已开 PR 的评审生命周期。每轮对当前 diff 从第一性原理重新 review（用 `task-judge`，绝不校验外部工具的修复标记），读取人类 reviewer 的评论，派执行技能修复，更新 PR 描述，回复评审线程。
-- **入场时机**: 用户要求处理 PR 评审意见、更新 PR 描述、或回复 PR 反馈。
-- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
-- **职责边界**: 本工作流拥有 GitHub API 交互（读评论、更新描述、回复线程）。不拥有本地 git 操作（diff、commit、branch、push），那些仍归执行技能和 AGENTS.md 第 3.8 节管。
-- **调度规则**: review 每轮从头做；自动工具的修复标记、"resolved" 标记一律不读不校验。GitHub 写操作需要用户明确授权，且需用户确认审阅结果后才 post。若 review 无问题且无人类评论需回应，则不 post 任何内容。本工作流内不 push 代码；push 是执行技能的动作，受 AGENTS.md 3.6 管。
-- **交接**: `job-security-review`（diff 触及安全面时）。用户（确认审阅结果、授权 GitHub 写操作和 push）。
-- **不适用**: 从零创建新 PR（那是执行技能加 push + pr-open 授权的事）。没有 PR 的纯代码审查（用 `job-review`）。
-
-#### `job-security-review`
-
-- **目的**: 端到端安全审计。链路是 `task-explore`（定位安全敏感面）→ 独立的 `task-judge` 与 `task-librarian` 检查（宿主支持时并行）→ 必要时用 `task-debug` 深挖不清楚的漏洞路径 → 聚合结论。
-- **入场时机**: 上线带安全面的代码前（认证、会话、加密、密钥/令牌处理、输入校验、反序列化）；开涉及安全代码的 PR 前；发版周期性巡检；发现安全相关 bug、需先把利用面画清楚再动手修的时候。
-- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
-- **调度规则**: 子智能体的发现按来源分列，不跨源合并或重排。`[blocker]` 必须给出具体失效模式。最终结论就一句 `APPROVED` / `CHANGES-REQUESTED` / `BLOCKED`。
-- **交接**: 由 `task-multi-build` 或 `task-yugong` 承接 `[blocker]` 和 `[should-fix]` 项。
-- **不适用**: 非安全类的一般正确性审查（用 `job-review`）。
-
-#### `job-debug-deep`
-
-- **目的**: 硬 bug 诊断的端到端流程。驱动 `task-debug` 走完六阶段证据优先回路；第 3 阶段按需派发 `task-librarian` 拉外部知识；第 4 阶段发现根因是架构问题时升级到 `task-judge`；第 5 阶段把修复交给 `task-yugong`（单模块）或 `task-multi-build`（跨模块）；第 6 阶段校验清理。
-- **入场时机**: 一次简单修没搞定的硬 bug 或性能回归；"有时候会挂"的 flake；一串没有明显起因的症状；对同一个 bug 准备做第二次修复前。
-- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
-- **调度规则**: 没有能报红的反馈回路就绝不进假设阶段。debug 日志必须带 SHA1 前缀、并配套 `spec/debug/<sha1_short>.md` 记录。回归测试要在**修改之前**写在正确的 seam 上。绝不用 `sleep()` 掩盖竞态；第 6 阶段清理绝不能跳。
-- **交接**: `task-yugong`（单模块修复）或 `task-multi-build`（跨模块修复）；可选在第 6 阶段末尾再做一次 `task-judge` 审查。
-- **不适用**: 首次尝试就能修好的简单 bug（直接走 `job-debug` 或 `task-yugong`）。
-
-#### `job-spiral-up`
-
-- **目的**: 单会话自主 supervisor。创建 worktree 分支，串起 `task-single-plan` → 内联执行（basket 级重试）→ review 直到 `Done`。自维护 loop table 于 `spec/<slug>/job-spiral-up.md`；原子技能输出不修改。每 cycle 在 spiral 分支上 commit。
-- **入场时机**: 用户明确要求单会话内自主跑到收敛（"循环直到结束""一直到结束""不要停，直到完成""无限循环"等），并给出有界目标。"无限循环"只表达意图，实际执行以 `Done` 为终止。
-- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
-- **调度规则**: 不派 `task-yugong` / `task-multi-build` / `task-clarify` / `job-plan` / `job-build` / `job-review` / `job-security-review`。plan step 内联执行。basket 失败必须命名实质差异化的下一次尝试才能重试；否则记为 stuck-point fix item。fix items 按 LIFO 处理。stall 触发对称 re-planning。
-- **终止状态**: 仅 `Done`。所有 plan step 完成且无未解决 fix item 时到达。worktree 分支留给用户 merge 或 discard。
-- **不适用**: 模糊请求、跨 session 恢复、需要不可逆共享影响操作的计划（这些应在 planning 阶段被 `task-challenge` 拒绝）。
-
-#### `job-scamper`
-
-- **目的**: 多角度方案构建。先产出初始方案，然后循环——对当前方案做 SCAMPER 七角度拆解，舍弃不合理的和已见过的，对每个存活角度派 `task-why-how-what`，再用二八聚焦 + 逻辑自洽重估最优——直到某一轮产不出新的合理角度。追求全面方案，不是找茬。
-- **入场时机**: 用户想让一个方案、计划、设计或决策经系统的多角度分析发展成全面整体。领域通用，不限编码。
-- **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
-- **调度规则**: 每个视角作为独立隔离的 `task-why-how-what` 运行；视角按文件分开，彼此看不到对方推理。编排者自己从不推演某个视角——它生成七个 SCAMPER 角度，套两道过滤（合理性、新颖性），派出存活角度，用二八 + 自洽裁决。绝不为凑满七个而派不合理角度。终止判据是"某一轮产不出新的合理角度"——有限且逐轮消耗的角度空间自然收敛。
-- **Next**: 无。返回全面方案和它逐轮的演化。
-- **不用于**: 单一视角的一次推演（用 `task-why-how-what`）；对已有答案做对抗式找茬。
-
----
-
-## 第三部分：场景
-
-三个真实开发情景到底。每个都展示技能按什么顺序触发，方法论如何在每一步塑造行为。
-
-### 场景 A：模糊请求，中等规模任务
-
-**请求**（用户，不精确）"给 app 加认证。"
-
-**链**：`task-clarify → task-single-plan → task-challenge → task-multi-build → task-checkpoint（检查点） → task-judge`
-
-**走一遍：**
-
-1. **`task-clarify`** 批判请求本身。第一性原理分解问"认证"解决什么问题。候选包括 (a) 防止未授权访问，(b) 个性化体验，(c) 按用户计费。列出假设（"SSO 需要吗？密码重置需要吗？SSO 提供商？"）、歧义（"session 还是 JWT？移动端？"）、AI 失败模式（"会用 OAuth 过度设计，其实一个简单 session cookie 就够"）。推荐唯一最有价值的澄清问题"用户按账户付费，还是就是不让陌生人看私有数据？"
-2. 用户答："就是不让陌生人看私有数据。email + 密码。不用 SSO。"
-3. **`task-single-plan`** 产出书面计划。第一性原理推导问不可再简约的约束是 (a) email + 密码、(b) session-based（未提移动端）、(c) 密码重置走邮件、(d) 已有框架的 session 中间件。端到端垂直切片排 6 个原子步骤，每步端到端可 demo，包括 `users` 表 migration、注册接口、登录接口、session 中间件、登出接口、密码重置流程。每步命名了 touch 的文件和预期可观察结果。停。等审批。
-4. **`task-challenge`** 用对抗式审查姿势批。发现第 3 步没指定哈希算法；第 4 步没说 session 过期后怎样；第 3 步没限速（暴力破解风险）；计划没有回滚故事。返回 findings；计划被修订。
-5. 用户批准修订后的计划。
-6. **`task-multi-build`** 执行。TDD 纪律要求每一步都先在 seam 上写失败的行为测试、看它以正确原因失败、实现、重构。背景派 `task-librarian` 从 OWASP 文档确认 bcrypt cost factor 具体推荐值（第一手来源研究）。派 `task-explore` 找可复用的现有中间件。
-7. **`task-checkpoint`** 在第 3 步后触发（约 1/3 处）。只读检查点。读上次 commit 以来的 diff；确认执行者按 `task-challenge` 要求加了限速。判词是 `continue`。
-8. 第 6 步后，`task-multi-build` 汇报功能完成，测试全过。
-9. **`task-judge`** 跑双轴对抗式审计。Standards 轴发现一处基本类型偏执（用裸字符串代表密码而不是领域类型）；判断题，不是硬违反。Spec 轴确认 `task-challenge` 提出的每处歧义都在代码里解决了。判词是批准，附一条 `[should-fix]`（基本类型偏执）。交给 `task-multi-build` 做小 follow-up。
-
-**触发的方法论**：分解、推导、垂直切片、对抗审查（两次）、TDD、第一手来源、检查点、Fowler 坏味。
-
-### 场景 B：目的地模糊的长周期项目
-
-**请求**（技术负责人，大 scope）"把 web app 从框架 A 迁到框架 B。"
-
-**链**：`task-clarify → task-strategy（画图） → 票据（research / prototype / grilling / task） → task-strategy（工作图，一次会话解一张） → task-single-plan（每张 task 票）→ task-multi-build → task-checkpoint → task-judge`
-
-**走一遍：**
-
-1. **`task-clarify`** 分解请求。
-   - **根本问题**：多半是"框架 A EOL / 性能天花板 / 招人困难"。
-   - **歧义**："迁"可以指全面重写、增量式绞杀、只做新模块。
-   - **推荐**："命名终点线。'迁完了'具体是什么？B 上做到功能对等，还是新功能上 B、老功能留 A？"
-2. 用户答："全部对等。所有新功能必须在 B 上。老功能碰到就迁，但那些故意休眠的功能我们要一个计划。"
-3. **`task-strategy`** 画 wayfinder 地图。战争迷雾制图，命名目的地（"所有功能在 B 上跑、功能对等、生产环境没有 A"）。然后画能精确的部分。
-   - `[task] 在 A 旁边搭起 B（dual-stack build）。`
-   - `[research] B 支持我们的 SSO adapter 吗？对着 SSO 厂商文档核实。`
-   - `[research] B 支持我们的数据可视化库吗？对着库的 B 兼容矩阵核实。`
-   - `[prototype] 移植一个代表性屏幕。测 LCP、bundle size、开发者速度。`
-   - `[grilling] 那 12 个没人用、也没人有权删的休眠功能怎么办？`
-   - `[task] 切换策略：路由层绞杀 vs 按功能 feature flag。`
-   其他都留在 `Not yet specified`。
-4. 第 2 次会话：`task-strategy` 挑第一张 `[research] SSO adapter`。派 `task-librarian`。librarian 读 SSO 厂商的 B 兼容文档（第一手来源研究），交叉对照厂商的公开 SDK repo，发现一个坑（session refresh 在不同 adapter 间行为不同）。票据结案带 findings；`Decisions so far` 追加一行。会话结束。
-5. 第 3 次会话跑 `[prototype] 移植一个代表性屏幕`。派 `task-quick-verify`。UI 分支用不同 B 路由模式建三个版本，测 LCP，把切换栏放在演示里让团队点。胜出者记进决策日志。票据结案。
-6. 第 4 次会话：`[grilling] 休眠功能`。派 `task-clarify` 追问用户。用户同意对 12 个中的 8 个做正式弃用投票。
-7. 票据解决过程中，雾变成新的清晰票据，如 `[task] 按 librarian 发现迁 SSO 层`、`[task] 采用原型胜出的路由模式`、`[task] 弃用批准的 8 个功能`。
-8. 每张 task 票据在新的会话里被拿起时，走 **`task-single-plan`**（单会话计划）→ **`task-challenge`**（评审）→ **`task-multi-build`**（执行）→ **`task-checkpoint`**（检查点）→ **`task-judge`**（审计）。
-9. 每次会话后，`task-strategy` 用票据结论更新地图，并把新可精确的雾升级成新票据。
-
-**触发的方法论**：分解、战争迷雾制图、第一手来源、双分支原型，加上每张 task 票据的完整场景 A 链。
-
-**关键纪律**：每次会话解不超过一张非 research 票据。"顺便再解一张小的"的诱惑破坏整张图的演化，是要拒绝的。
-
-### 场景 C：首次修复失败的硬 bug
-
-**请求**（开发者，抓狂）"checkout 测试在 CI 上偶尔挂。我加了 `sleep(1)` 修了一次，还是间歇挂。"
-
-**链**：`task-yugong（首次修复尝试，失败）→ task-debug（六阶段诊断）→ task-multi-build（真修复，TDD）→ task-judge（如果是架构问题就审）`
-
-**走一遍：**
-
-1. **`task-yugong`** 是用户第一次说"修这个测试"时的默认技能。它试了 `sleep(1)`。表面修好了，flakiness 又回来了。`task-yugong` 正确地停下汇报，而不是加 `sleep(2)`。它没有通过打补丁掩盖症状来悄悄扩张 scope。
-2. 用户说"还是 flaky"。这是 `task-debug` 的触发信号。
-3. **`task-debug` 第 1 阶段**：建反馈回路。本地用 `--repeat 200` 跑测试。观察到 200 次里 4 次失败。回路能报红、可确定性够（4/200 可重现）、快（30 秒）、可 agent 单独跑。记下反馈回路命令。
-4. **`task-debug` 第 2 阶段**：复现 + 最小化。确认失败是用户提到的具体症状（第 87 行那个具体 assertion），不是附近另一个。把测试砍到仍然 3/200 挂的最小函数体。剩下的每个元素都有承重。
-5. **`task-debug` 第 3 阶段**（假设）。生成 4 个可证伪的排序假设：
-   - (a) 数据库事务隔离导致 read-your-writes 在并发测试跑时失败。若串行化测试套件后 flakiness 消失，则假设成立。
-   - (b) assertion 里的 `Date.now()` 跨了秒边界。若冻结时间后 flakiness 消失，则假设成立。
-   - (c) checkout 服务在模块级变量里缓存了东西。可证伪的做法是测试间清模块缓存。
-   - (d) 一个共享 test fixture 被无关的测试改动了。可证伪的做法是单独跑这个测试。
-   给用户看排序列表。用户按领域知识重排："我们最近给 checkout 服务加了 Redis 缓存" → (c) 升到 #1。
-6. **`task-debug` 第 4 阶段**（植入观察）。给出 SHA1 会话 `a3f9c2e1`、脱敏后的 `spec/debug/a3f9c2e1.md` 内容，以及一条针对性日志 `console.log("[DEBUG-a3f9c2e1] checkout cache state:", cache)`。可写执行体应用方案并返回 cache 证据。证据确认假设 (c)，上一次测试的模块级缓存活到了同一进程里的下一次测试。
-7. **`task-multi-build` 第 5 阶段**（修 + 回归测试）。在正确 seam 上写回归测试（test-suite 级 `afterEach` 断言缓存清空）。看它以正确原因失败，然后修 checkout 服务暴露 `resetCache()` 方法（或者更好，用依赖注入让缓存 per-instance）。测试套件转绿。
-8. **`task-debug` 第 6 阶段**（验证清理 + post-mortem）。重读执行体证据。`grep -rn "[DEBUG-a3f9c2e1]"` 返回零条匹配，debug 记录已整理或删除，原始 `--repeat 500` 回路报告 0 次失败。它为将来的 commit 或 PR message 给出正确假设"修复 flaky checkout 测试，由模块级 Redis 缓存跨测试运行残留导致。"
-9. 如果在第 4 阶段发现根因是架构错误（比如共享可变状态在整个代码库大量使用），`task-debug` 会先交给 **`task-judge`** 出架构判断，再由判断圈定修复范围。
-
-**触发的方法论**：循环工程（正确停下而不是加 `sleep`）、六阶段回路、SHA1 标签、TDD（用于回归测试）、对抗式审计（如果升级）。
-
-**关键纪律**：flaky 测试里的 `sleep()` 是红旗，说明底层 race 从未诊断过。下一个触发的技能是 `task-debug`，不是 `sleep(2)`。
-
----
-
-## 结尾
-
-**如何开始用这些技能：**
-
-- 读 `AGENTS.md` 第 3.0 节了解语义路由；技能目录在本文件第二部分和 `README.md`。需要显式指定时输入 `/task-<slug>` 或 `/job-<slug>`；否则描述任务让路由器选择。
-- 不确定用哪个技能时，找第三部分里最接近的场景，跟着链走。
-- 某个方法论用起来陌生时，回第一部分再读那节，找一个小的真实任务试。
-
-**下一步去哪：**
-
-- `README.md`：安装和分工具配置。
-- `AGENTS.md`：AI 每次 session 开始时读的操作规则。第 3.0 节是默认状态和语义路由表；第 3.1-3.11 节是 always-on 纪律。能力目录和编排链在本文件与 `README.md`。
-- `skills/task-<slug>.md` 和 `skills/job-<slug>.md`：每个技能或工作流的完整行为契约、输出模板、硬约束。
