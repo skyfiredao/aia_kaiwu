@@ -4,7 +4,7 @@ Capabilities use two prefixes: `task-*` for atomic skills and `job-*` for multi-
 
 ## 1. Route every turn
 
-Each turn, a non-question instruction enters `task-yugong` first, then match it to the table below; a more specific row takes over via `skill(name="<slug>")`. Answer a question directly. Execute strictly, no exceptions. Do not ask before dispatching; internal delegation targets `task-*` / `job-*` sub-agents only.
+Each turn: MUST load `skill(name="task-yugong")` first for any message that is not a question, then a more specific row in the table below takes over via `skill(name="<slug>")` when one matches. Execute strictly, no exceptions. Do not ask before dispatching; internal delegation targets `task-*` / `job-*` sub-agents only.
 
 | Intent (semantic) | Dispatch to |
 |---|---|
@@ -12,6 +12,7 @@ Each turn, a non-question instruction enters `task-yugong` first, then match it 
 | Execute an existing / approved plan | `/job-build` |
 | Verify mid-execution progress | `/job-verify` |
 | Comprehensive pre-completion review | `/job-review` |
+| Review a written plan or design document for logic flaws or omissions | `/task-challenge` |
 | Code-doc alignment; docs out of date | `/job-align` |
 | Bug reported, first attempt (simple, clear reproduction) | `/job-debug` |
 | Hard bug: flaky / resisted prior fix / chained symptoms / no obvious cause | `/job-debug-deep` |

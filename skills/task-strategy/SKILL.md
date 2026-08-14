@@ -20,12 +20,6 @@ handoffs:
 
 # task-strategy
 
-## When to enter
-
-- Work bigger than one agent session can hold.
-- Way from here to destination is foggy.
-- Multiple decisions still need to be made before execution can start.
-
 ## Behavior contract
 
 1. **Name the destination first.** Run a task-clarify-style grilling session to pin down what this map is finding its way to (a spec, a decision, a change made in place). The destination fixes the scope.

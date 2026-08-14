@@ -11,14 +11,6 @@ handoffs:
 
 # job-plan
 
-## When to enter
-
-- Request is ambiguous or contains contradictions
-- Request is ≥ 2 steps and no plan is provided
-- User says "plan first" / "help me break this down" / "先做个计划" / "怎么做" / "拆解一下"
-- Architectural choice on the table
-- Scope not obvious
-
 ## Steps
 
 1. **`task-clarify`**: Critique the request itself. Enumerate hidden assumptions, ambiguities, likely AI failure modes. Recommend the single most valuable clarifying question.
@@ -28,7 +20,7 @@ handoffs:
    - Numbered plan (tracer-bullet vertical slices; each step names file + expected result + verification)
    - Assumptions and Open Questions
    - `Artifacts to persist` block: marks `design.md`, `guide.md`, `README.md` as `yes`/`no` based on plan characteristics (architectural / ops-affecting / user-facing)
-   - Emit the corresponding artifact section for every `yes` mark, using the templates in `skills/task-single-plan.md`
+   - Emit the corresponding artifact section for every `yes` mark, using the templates in `skills/task-single-plan/SKILL.md`
 4. **`task-challenge`**: Adversarial review of the plan and any emitted artifact sections. Flag drifted, merged, missing steps.
 5. Read `task-challenge`'s **verdict** field (values: `approve` / `needs-revision` / `reject`). If `needs-revision` or `reject` → revise (return to step 3). If `approve` → proceed. (The per-step `[blocker]` / `[should-fix]` / `[nice-to-have]` labels are severity annotations; the verdict is the gate.)
 6. **gate: user approves the plan artifacts.** Show the user the `Artifacts to persist` list; user can add or remove any of design.md / guide.md / README.md from the write set. Do not proceed to persistence without explicit user OK.

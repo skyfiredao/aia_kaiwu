@@ -14,18 +14,6 @@ handoffs:
 
 # job-debug
 
-## When to enter
-
-- User reports a bug
-- Test failure
-- Unexpected runtime behavior
-- User says "有 bug" / "X 不 work" / "为什么没生效"
-
-Do **not** enter for:
-- Already-diagnosed bugs where the fix is known (go direct to `task-yugong`)
-- Flaky "sometimes fails" bugs (go direct to `job-debug-deep`)
-- Bugs already resisted a first fix (go direct to `job-debug-deep`)
-
 ## Steps
 
 1. **`task-debug`**: Phase 1, build a red-capable feedback loop (deterministic, fast, agent-runnable).

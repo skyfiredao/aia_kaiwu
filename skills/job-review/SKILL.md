@@ -14,17 +14,6 @@ handoffs:
 
 # job-review
 
-## When to enter
-
-- Before declaring any significant task done
-- Before opening or merging a PR
-- Before releasing a feature branch
-- After an executor session reports completion
-
-Distinct from `task-checkpoint`: this runs **after** execution; checkpoint runs **during**.
-
-Optional argument `[scope]` accepts `diff-since:<git-ref>` (default is current branch vs main) or `<path>`.
-
 ## Steps
 
 1. **`task-challenge`**: Plan-vs-reality check. If a written plan or spec exists (chat history, `spec/`, PR description, issue), walk through it step by step against the actual diff. Flag drifted, merged, and missing steps. If no plan exists, note it and skip.
@@ -79,4 +68,4 @@ Optional argument `[scope]` accepts `diff-since:<git-ref>` (default is current b
 
 ## Next
 
-Next step — apply the `[blocker]` and `[should-fix]` items (via `task-yugong` single-scope or `task-multi-build` multi-module). Applying the fixes continues this flow; it is not a stop.
+Next step — apply the `[blocker]` and `[should-fix]` items (via `task-yugong` single-scope or `task-multi-build` multi-module).

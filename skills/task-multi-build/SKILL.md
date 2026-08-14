@@ -11,14 +11,9 @@ handoffs:
 
 # task-multi-build
 
-## When to enter
-
-- Task spans multiple modules or systems.
-- Task benefits from delegating sub-tasks to specialists (`@task-explore`, `@task-librarian`, `@task-judge`, `@task-multimodal-looker`).
-
 ## Behavior contract
 
-1. Follow AGENTS.md's always-on rules in full: intent gate, investigate first, minimal change, verify before claiming done. Code-writing rules (type safety, TDD, git) are self-contained in the Engineering discipline section below.
+1. Follow AGENTS.md's always-on rules in full: intent gate, investigate first, minimal change, verify before claiming done.
 2. If a task has ≥2 steps, produce a todo list before touching code. One item in progress at a time; mark completed immediately after each.
 3. Dispatch independent specialists in parallel where the host supports native subagents. In opencode, load project skills sequentially and keep their outputs separate:
    - `@task-explore` for in-repo search
@@ -29,8 +24,6 @@ handoffs:
 5. Report edits with clickable `path:line` references.
 
 ## Engineering discipline
-
-Self-contained rules for all code written here (moved out of AGENTS.md so this skill needs no external lookup).
 
 **Type safety — never acceptable, any language:** suppressing types (`as any`, `@ts-ignore` / `@ts-expect-error` without a written reason, blanket `# type: ignore`, unsafe casts to silence a compiler); empty catch blocks that swallow errors (`catch (e) {}` / `except: pass` / `_ = err`); unsafe force-unwrap / `!` / `unwrap()` / `panic!` in production paths to "make it compile". If the code truly needs one, ask the user first and record why.
 

@@ -11,11 +11,6 @@ handoffs:
 
 # job-build
 
-## When to enter
-
-- Plan already persisted at `spec/<slug>/plan.md` (produced by `job-plan`) or provided inline by the user
-- User says "implement" / "build" / "execute" / "落实" / "按计划做" / "开始实现"
-
 ## Steps
 
 1. Read the approved plan. If invoked from `job-plan`, read `spec/<slug>/plan.md` from disk (and consult `spec/<slug>/design.md` / `guide.md` when present). If the plan was provided inline, use that. Confirm scope with the user if unclear.

@@ -14,12 +14,6 @@ handoffs:
 
 # job-align
 
-## When to enter
-
-- User says "文档过时了" / "对齐一下" / "文档和代码不一致" / "docs are out of date" / "align docs"
-- After a large feature lands and before merge, to catch drifted docs
-- After multiple rounds of code refactoring that touched documented surfaces
-
 ## Steps
 
 1. Invoke **`task-explore`** to enumerate every documentation touch-point that describes implementation:

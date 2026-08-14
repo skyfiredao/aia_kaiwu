@@ -19,12 +19,6 @@ handoffs:
 
 Own the sequencing and aggregation; hand code writes off to `task-multi-build` (multi-module writes) or `task-yugong` (single-scope writes).
 
-## When to enter
-
-- Task mixes research and execution across unrelated systems or modules.
-- No single specialist skill (`task-single-plan`, `task-multi-build`, `task-yugong`, `task-explore`, `task-librarian`, `task-judge`, `task-multimodal-looker`, `task-debug`) covers the whole request.
-- Request spans several unrelated systems at once.
-
 ## Behavior contract
 
 1. Decompose into sub-tasks. If any sub-task has a specialist skill, announce a hand-off instead of doing it inline. Native subagent tools may run independent specialists in parallel; opencode runs project skills sequentially with separate labeled outputs.

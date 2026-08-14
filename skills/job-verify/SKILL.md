@@ -17,14 +17,6 @@ handoffs:
 
 # job-verify
 
-## When to enter
-
-- Every ~3 steps of `job-build`, or before major state transitions
-- User says "check progress" / "跑到哪了" / "on track?"
-- Executor reports drift or unexpected findings
-
-Completed work goes to `job-review` for Standards + Spec review and the leftover sweep.
-
 ## Steps
 
 1. Read the approved plan and current execution state.

@@ -9,15 +9,7 @@ agents: [task-explore, task-multimodal-looker]
 
 ## Purpose
 
-Produce an overview-level, preloadable project spec from existing project documentation, so every team member's AI tool starts from the same baseline: shared vocabulary, core concepts, design principles, and main business logic. It exists to prevent three failures: information asymmetry, inconsistent terminology, and design-direction drift.
-
-This is a summary layer that sits on top of the detailed docs. It does not replace them, hold authority over them, or change any design decision.
-
-## When to enter
-
-- User asks to distill a project overview / concept baseline for AI preloading ("蒸馏项目 spec", "生成项目 overview/术语基线", "distill a project overview for the team to preload").
-- AI-tool onboarding material is needed and the project already has design / requirement docs.
-- Source docs changed and the existing distilled spec must be regenerated.
+Produce an overview-level, preloadable project spec from existing project documentation, so every team member's AI tool starts from the same baseline: shared vocabulary, core concepts, design principles, and main business logic.
 
 ## Inputs
 

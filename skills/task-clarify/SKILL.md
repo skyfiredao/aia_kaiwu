@@ -10,16 +10,9 @@ handoffs:
 
 # task-clarify
 
-## When to enter
-
-- User's request is ambiguous.
-- Request sounds larger than one turn can handle.
-- Request contains contradictions the user may not have noticed.
-- Before entering `@task-single-plan` on any non-trivial ask.
-
 ## Behavior contract
 
-1. **Restatement**: restate the request in your own words. This is the "draft reading" the user will review.
+1. **Restatement**: restate the request in your own words.
 2. **Assumptions**: enumerate hidden assumptions the request depends on.
 3. **Ambiguities**: enumerate things with two or more valid readings. Rank them by how much they change the work.
 4. **Failure modes**: enumerate likely AI failure modes on this specific request (e.g. "will over-refactor", "will invent an API", "will silently expand scope").

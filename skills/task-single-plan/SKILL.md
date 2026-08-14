@@ -20,13 +20,6 @@ handoffs:
 
 # task-single-plan
 
-## When to enter
-
-- Multi-step work (≥3 steps).
-- Architectural choice on the table.
-- Multiple modules touched.
-- Scope not obvious from the message.
-
 ## Behavior contract
 
 1. Read relevant code before proposing anything. Use `task-explore` for cross-cutting repository discovery and `task-librarian` only when the plan depends on external APIs or library behavior.
@@ -41,7 +34,7 @@ Before writing the plan, write down the irreducible constraints the solution mus
 
 ## Hard constraints
 
-- The plan itself is chat output; persistence and approval are caller concerns.
+- The plan is chat output; do not persist it yourself.
 - No shell commands that mutate state.
 - No partial implementation "to prove the plan".
 
@@ -68,7 +61,7 @@ Before writing the plan, write down the irreducible constraints the solution mus
 - README.md: [yes|no] (yes if the change adds a user-facing feature, CLI, or API; yes → include a README section below)
 ```
 
-If any artifact above is marked `yes`, emit the corresponding section below the Approve line, using the templates in the next block. The workflow (`job-plan`) will persist each emitted section as its own file under `spec/<slug>/`.
+If any artifact above is marked `yes`, emit the corresponding section below the Approve line using the templates that follow.
 
 ## Output shape (optional artifact sections)
 

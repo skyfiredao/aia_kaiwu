@@ -17,17 +17,6 @@ handoffs:
 
 # job-debug-deep
 
-## When to enter
-
-- Hard bug or performance regression that resisted a first fix
-- "Sometimes fails" flakiness
-- Chain of symptoms with no obvious cause
-- Before a second fix attempt on a bug the executor cannot pin down
-
-Straightforward first fixes go to `task-debug` (dispatched by `job-debug`) directly; this workflow is for the hard ones.
-
-Optional argument `<bug-description>` is a short description of the symptom (e.g., "checkout test fails 3/100 on CI").
-
 ## Steps
 
 1. **`task-debug`**: Phase 1, build a red-capable feedback loop (deterministic, fast, agent-runnable). Do not proceed without a loop.

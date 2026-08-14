@@ -16,13 +16,6 @@ handoffs:
 
 # task-debug
 
-## When to enter
-
-- Hard bug or perf regression that resisted a first fix attempt.
-- Something "sometimes fails" (flaky).
-- Chain of symptoms with no obvious cause.
-- Before a second fix attempt on a bug the executor cannot pin down.
-
 ## Behavior contract
 
 1. **Phase 1, build a feedback loop.** Construct one command that goes **red on this bug** and green when fixed. The loop must be **red-capable** (drives the actual bug code path, asserts the user's exact symptom), **deterministic** (same verdict every run; for flaky bugs, raise reproduction rate high enough to debug against), **fast** (seconds), and **agent-runnable** (unattended). Try, in this order, failing test at a seam, curl / HTTP script, CLI invocation with fixture, headless browser (Playwright), replay a captured trace, throwaway harness, property / fuzz loop, bisection harness, differential loop, HITL bash script (last resort). **Do not proceed to hypotheses without a loop.**

@@ -7,12 +7,7 @@ agents: []
 
 # task-why-how-what
 
-One grounded pass from a single vantage. Given one starting point, reason it through the Golden Circle anchored in first principles, and produce one result. It never ranks or picks among results — that judgment belongs to the caller (`job-scamper`).
-
-## When to enter
-
-- Dispatched by `job-scamper` as round 0 (starting point = the raw problem) or as one angle of a later round (starting point = a SCAMPER-transformed angle on the current solution).
-- Or invoked directly for a single first-principles / Golden-Circle pass on a problem.
+One grounded pass from a single vantage. Given one starting point, reason it through the Golden Circle anchored in first principles, and produce one result.
 
 ## Inputs (file-based)
 

@@ -14,12 +14,6 @@ handoffs:
 
 # task-doc-write
 
-## When to enter
-
-- User asks to write documentation, README, API reference, design doc, ADR, user guide, or tutorial.
-- A workflow needs a new document created (not drift repair, which is `job-align`).
-- User says "写文档" / "write docs" / "写个 README" / "document this API".
-
 ## Modes and styles
 
 | Mode | Style | Output | Audience |

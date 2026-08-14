@@ -13,16 +13,6 @@ handoffs:
 
 # task-librarian
 
-The caller may run this skill in the background when the host tool supports it and the research is independent.
-
-## When to enter
-
-- Unfamiliar library / framework.
-- "What is the best practice for X?"
-- "How does OSS repo Y do this?"
-- "Find real-world examples of Z."
-- Research that requires the web or external repositories.
-
 ## Behavior contract
 
 1. **Primary sources only**: official docs, source code, specs, first-party APIs. Never a secondary write-up of them. Follow every claim back to the source that owns it.

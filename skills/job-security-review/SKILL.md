@@ -14,15 +14,6 @@ handoffs:
 
 # job-security-review
 
-## When to enter
-
-- Before shipping code with security surface (auth, session, crypto, secret handling, input validation, deserialization)
-- Before opening a PR that touches security-sensitive code
-- Periodic per-release check
-- When a security-relevant bug's exploit surface needs charting before the fix
-
-Optional argument `[scope]` accepts `whole` (default), `diff-since:<git-ref>`, or `<path>`.
-
 ## Steps
 
 0. **Classify input surfaces first.** Enumerate every input surface (network endpoint, CLI argument, env variable, config file, data file, state file the project writes and reads back) and assign each a trust class:
@@ -81,4 +72,4 @@ Optional argument `[scope]` accepts `whole` (default), `diff-since:<git-ref>`, o
 
 ## Next
 
-Next step — apply the `[blocker]` and `[should-fix]` items (via `task-yugong` single-scope or `task-multi-build` multi-module). Applying the fixes continues this flow; it is not a stop.
+Next step — apply the `[blocker]` and `[should-fix]` items (via `task-yugong` single-scope or `task-multi-build` multi-module).

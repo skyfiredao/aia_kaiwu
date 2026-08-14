@@ -13,15 +13,6 @@ handoffs:
 
 # task-repo-analyze
 
-Token-intensive: reads directory trees, CI configs, package manifests, linter configs, and representative source files. Always prompt the user before starting and explain what the scan covers.
-
-## When to enter
-
-- First time working in an unfamiliar repository.
-- User asks "what does this repo do?" / "how is this repo set up?" / "分析一下这个库" / "这个仓库怎么用？"
-- A workflow needs repo context and no existing analysis exists under `spec/repo-analyze/`.
-- Existing analysis is stale (significant time or changes since last scan).
-
 ## Behavior contract
 
 1. **Check existing analysis.** Before scanning, look for prior analysis files under `spec/repo-analyze/`. If a file exists for this repository, present its `Scan Metadata` section (timestamp, path) and a one-line summary, then ask the user: use existing analysis, or re-scan?

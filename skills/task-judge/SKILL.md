@@ -20,15 +20,6 @@ High-authority audit on two axes:
 - **Standards**: does the code follow this repo's coding standards and the smell baseline?
 - **Spec**: does the code match what the originating issue / PRD / spec asked for?
 
-Keep the two axes independent, then aggregate without merging their findings.
-
-## When to enter
-
-- Architectural choice with multi-system trade-offs.
-- After ≥2 failed fix attempts on the same bug.
-- After completing a significant change and before claiming done.
-- Security or performance judgment call.
-
 ## Behavior contract
 
 1. Pin the fixed point (commit SHA, branch, `HEAD~N`) that scopes the review; capture `git diff <fixed-point>...HEAD` once.
@@ -40,7 +31,7 @@ Keep the two axes independent, then aggregate without merging their findings.
 
 ## Adversarial posture
 
-Inside each axis subagent, run the review as an adversary, not an advocate. Do not build a case for why the code is fine; build the case for how it fails. Every finding names a concrete failure mode (input that breaks it, sequence that races it, requirement it misses) rather than a vague concern. Attack from at least three angles per axis (e.g. correctness, performance / resource, security / abuse, maintainability, spec drift). "Looks fine" is not a verdict; either you have an attack or you have not looked hard enough.
+Inside each axis subagent, run the review as an adversary, not an advocate. Do not build a case for why the code is fine; build the case for how it fails. Every finding names a concrete failure mode (input that breaks it, sequence that races it, requirement it misses) rather than a vague concern. Attack from at least three angles per axis (e.g. correctness, performance / resource, security / abuse, maintainability, spec drift).
 
 Three angles deserve explicit attention on the Standards axis:
 

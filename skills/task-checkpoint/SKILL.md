@@ -19,12 +19,6 @@ handoffs:
 
 # task-checkpoint
 
-## When to enter
-
-- After every 3 (or user-configured N) plan steps completed by the executor (`task-multi-build` or `task-yugong`).
-- Before any major state transition (schema migration, deployment, `git push`).
-- When the executor reports unexpected findings or scope drift.
-
 ## Behavior contract
 
 1. Read the approved plan (chat, `spec/<slug>/plan.md`, or wherever it lives).

@@ -27,13 +27,6 @@ This workflow owns GitHub API interactions for the PR. It does not own local git
 
 The workflow reads the local diff (`git diff <base>...<head>`) as context input. It does not own the diffing action itself.
 
-## When to enter
-
-- User asks to address PR review comments ("fix the review comments", "处理 PR 评审意见")
-- User asks to update a PR description based on current changes
-- User asks to respond to PR feedback
-- After applying fixes, user wants the PR synced
-
 ## GitHub access prerequisite
 
 This workflow requires at least read access to the GitHub API. Any one of the following satisfies the requirement:

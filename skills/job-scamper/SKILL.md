@@ -7,13 +7,6 @@ agents: [task-why-how-what]
 
 # job-scamper
 
-Build a comprehensive solution by looking at it from every angle, round after round, until no new reasonable angle remains. The aim is coverage and a well-rounded solution, not fault-finding. The orchestrator generates angles and judges; each vantage's reasoning is done by an isolated `task-why-how-what`.
-
-## When to enter
-
-- User wants a solution, plan, design, or decision developed through systematic multi-angle analysis into a comprehensive whole ("scamper", "multi-angle analysis", "全角度分析", "build a comprehensive solution from all angles").
-- Domain-general, not only code.
-
 ## Files
 
 ```
@@ -55,11 +48,9 @@ Vantages are kept in separate files. The orchestrator reads solutions and result
 
 ## Dispatch rules
 
-- Each vantage runs as its own `task-why-how-what` with only its assigned starting point; vantages are file-separated so they do not see each other's reasoning.
-- The orchestrator never reasons a vantage itself — it generates angles (SCAMPER), applies the two filters, dispatches, and judges (Pareto + self-consistency).
-- Discard unreasonable angles; never dispatch a task for an angle that does not hold just to fill the seven.
-- Termination is "a round produces no new reasonable angle." No fixed round cap — the finite, monotonically-consumed angle space terminates it on its own.
-- Aim at comprehensiveness, not fault-finding; a vantage that merely confirms part of the current solution is still useful coverage.
+- Never dispatch a task for an angle that does not hold just to fill the seven.
+- Termination is "a round produces no new reasonable angle." No fixed round cap.
+- A vantage that merely confirms part of the current solution is still useful coverage.
 
 ## Output shape
 
