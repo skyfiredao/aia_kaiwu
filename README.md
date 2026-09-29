@@ -29,12 +29,12 @@ This three-layer structure borrows the core method of **prompt graph engineering
 ```
 .
 ├── AGENTS.md                              ← index + workflow discipline
-├── CLAUDE.md                              ← text file: `@AGENTS.md` import (Claude Code)
 ├── README.md                              ← this file
 ├── README_zh.md                           ← Chinese version
 ├── INTRODUCTION.md                        ← design deep-dive
 ├── INTRODUCTION_zh.md                     ← Chinese version
 ├── windows_setup.ps1                      ← Windows workspace setup script
+├── plugin/aia-skills.js                   ← opencode plugin: registers .opencode/skills + injects AGENTS.md into the system prompt each turn
 └── skills/                                ← canonical SKILL.md dirs (only committed content; tool dirs are created by setup)
     ├── task-single-plan/
     ├── task-multi-build/
@@ -53,6 +53,7 @@ This three-layer structure borrows the core method of **prompt graph engineering
     ├── task-repo-analyze/
     ├── task-distill-spec/
     ├── task-doc-write/
+    ├── task-cleanup-slop/
     ├── task-why-how-what/
     ├── job-plan/
     ├── job-build/
@@ -67,7 +68,7 @@ This three-layer structure borrows the core method of **prompt graph engineering
     └── job-scamper/
 ```
 
-Update `skills/<slug>/SKILL.md` or `AGENTS.md`. The `.claude/`, `.cursor/`, `.opencode/` tool directories are not part of this repo; the install steps and `windows_setup.ps1` create their `skills/` projections in your workspace. `CLAUDE.md` imports `@AGENTS.md`.
+Update `skills/<slug>/SKILL.md` or `AGENTS.md`. The `.claude/`, `.cursor/`, `.opencode/` tool directories are not part of this repo; the install steps and `windows_setup.ps1` create their `skills/` projections in your workspace.
 
 ## Installation
 
@@ -80,7 +81,6 @@ Layout:
 ```
 workspace/
 ├── AGENTS.md               ← from aia_kaiwu
-├── CLAUDE.md               ← from aia_kaiwu (imports @AGENTS.md)
 ├── skills/                 ← from aia_kaiwu (copy or symlink of its skills/)
 ├── .claude/skills          ← skills/ projection (macOS/Linux symlink, Windows copy)
 ├── .cursor/skills          ← skills/ projection (macOS/Linux symlink, Windows copy)
@@ -95,10 +95,9 @@ mkdir -p ~/workspace
 cd ~/workspace
 
 # 1. Canonical files from aia_kaiwu (copy for independence, or symlink to track `git pull`)
-cp -R /path/to/aia_kaiwu/{AGENTS.md,CLAUDE.md,skills} .
+cp -R /path/to/aia_kaiwu/{AGENTS.md,skills} .
 #   symlink alternative:
 #   ln -sf /path/to/aia_kaiwu/AGENTS.md AGENTS.md
-#   ln -sf /path/to/aia_kaiwu/CLAUDE.md CLAUDE.md
 #   ln -sfn /path/to/aia_kaiwu/skills  skills
 
 # 2. Generate the per-tool skill projections (one symlink each → skills/)
@@ -153,8 +152,28 @@ opencode reads `AGENTS.md` at the workspace root as always-on instructions.
 
 | File | Loaded when | Purpose |
 |---|---|---|
-| `AGENTS.md` (repo root) | Session start | Always-on operating rules, including default routing to `task-*` / `job-*` skills |
-| `skills/*/SKILL.md` | On demand via `skill` tool | Full behavior contract for each skill or workflow |
+| `AGENTS.md` (repo root) | Session start + re-asserted every turn | Always-on operating rules, including default routing to `task-*` / `job-*` skills |
+| `.opencode/plugins/aia-skills.js` | Session start | Registers `.opencode/skills` into `config.skills.paths`, and injects `AGENTS.md` into the system prompt on every request |
+| `.opencode/skills/*/SKILL.md` | On demand via `skill` tool | Full behavior contract for each skill or workflow |
+
+### Register the skills plugin
+
+The bundled [`plugin/aia-skills.js`](plugin/aia-skills.js) runs two hooks, mirroring the superpowers plugin:
+
+1. `config` appends `<root>/.opencode/skills` to `config.skills.paths` at session start. `.opencode/skills` is a single symlink to `skills/`, matching `.cursor/skills` and `.claude/skills`; opencode does not scan that projection on its own.
+2. `experimental.chat.system.transform` injects `AGENTS.md` into the system prompt on every request. opencode's native `AGENTS.md` load sits in a weak context layer the model can dilute or skip; re-asserting it at the system layer each turn makes the routing rules hard to skip.
+
+opencode auto-loads any plugin under `.opencode/plugins/`.
+
+Both are single symlinks created once from the workspace root (macOS / Linux):
+
+```bash
+mkdir -p .opencode/plugins
+ln -sfn ../skills .opencode/skills
+ln -sfn ../../plugin/aia-skills.js .opencode/plugins/aia-skills.js
+```
+
+Windows: copy `plugin/aia-skills.js` into `.opencode/plugins/` and `skills/` into `.opencode/skills/` instead of symlinking.
 
 ### Verify it works
 
@@ -162,6 +181,7 @@ opencode reads `AGENTS.md` at the workspace root as always-on instructions.
 2. Ask: "What are you following from AGENTS.md right now?"
 3. Expect the AI to state that a non-question instruction enters `task-yugong` (single scoped task, no delegation).
 4. Ask a scoped implementation task; expect the AI to run it under the `task-yugong` contract (todo list, verify each step, stop and report if scope grows).
+5. Ask: "List the skills you can load." Expect the full `task-*` / `job-*` set, confirming the plugin registered `.opencode/skills`.
 
 ---
 
@@ -188,13 +208,13 @@ Cursor honors `AGENTS.md` at the workspace root natively as always-on rules.
 
 ## Claude Code setup
 
-Claude Code reads `CLAUDE.md` at the repo root as project instructions and also honors `AGENTS.md`.
+Claude Code reads `AGENTS.md` at the repo root as project instructions.
 
 ### What auto-loads
 
 | File | Loaded when | Purpose |
 |---|---|---|
-| `CLAUDE.md` (`@AGENTS.md` import) | Session start | Project instructions |
+| `AGENTS.md` | Session start | Project instructions |
 | `.claude/skills/*/SKILL.md` | On agent invocation | Agent Skills for all capabilities |
 
 `.claude/skills` is a single symlink to `skills/`. Each capability's YAML frontmatter uses Claude Code's schema: `name`, `description`, optional `tools` whitelist, optional `model`.
@@ -217,7 +237,6 @@ VS Code Copilot Chat auto-scans `.claude/skills/*/SKILL.md` at the workspace roo
 | File | Setting | Default |
 |---|---|---|
 | `AGENTS.md` (repo root) | `chat.useAgentsMdFile` | **on** |
-| `CLAUDE.md` (repo root, `@AGENTS.md` import) | `chat.useClaudeMdFile` | **on** |
 | `.claude/skills/*/SKILL.md` (Agent Skills) | auto (Agent Skills location) | on |
 
 VS Code Copilot auto-discovers Agent Skills (`SKILL.md` directories) from `.claude/skills/`, shared with Claude Code.
@@ -273,6 +292,7 @@ Full behavior contract for each capability lives in [`skills/<slug>/SKILL.md`](s
 | [`task-repo-analyze`](skills/task-repo-analyze/SKILL.md) | Analyze repo structure, conventions, tooling, CI. Token-intensive; prompts user; persists to `spec/repo-analyze/`. |
 | [`task-distill-spec`](skills/task-distill-spec/SKILL.md) | Distill an overview-level project spec (glossary, domain model, principles, business logic) from existing docs into a preloadable file. Compress/define only, never infer; static snapshot. |
 | [`task-doc-write`](skills/task-doc-write/SKILL.md) | Write documentation in four modes (api, architecture, guide, readme) with professional or accessible style. |
+| [`task-cleanup-slop`](skills/task-cleanup-slop/SKILL.md) | Remove AI slop prose (self-justification, preachy imperatives, padding, duplication, em-dash abuse) from a document without changing its facts or decisions. |
 | [`task-judge`](skills/task-judge/SKILL.md) | Two-axis audit (Standards + Spec, kept separate). |
 | [`task-debug`](skills/task-debug/SKILL.md) | Six-phase evidence-first hard-bug diagnosis loop. |
 | [`task-why-how-what`](skills/task-why-how-what/SKILL.md) | One grounded pass from a single vantage: reason a starting point through the Golden Circle (Why→How→What) anchored in first principles, produce one result, no cross-result verdict. Domain-general. |

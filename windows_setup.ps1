@@ -10,9 +10,8 @@ try {
   Write-Warning "git pull failed; using existing checkout"
 }
 
-Write-Host "copy AGENTS.md and CLAUDE.md..."
+Write-Host "copy AGENTS.md..."
 copy "$SRC\AGENTS.md" "$DST\AGENTS.md" -Force
-copy "$SRC\CLAUDE.md" "$DST\CLAUDE.md" -Force
 
 foreach ($t in ".claude\skills", ".cursor\skills", ".opencode\skills") {
   Write-Host "copy skills to $t..."

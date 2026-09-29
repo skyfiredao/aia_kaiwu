@@ -29,12 +29,12 @@ English version: [README.md](README.md)。
 ```
 .
 ├── AGENTS.md                              ← 索引 + 工作纪律
-├── CLAUDE.md                              ← 文本文件：`@AGENTS.md` 引用（Claude Code）
 ├── README.md                              ← 英文版说明
 ├── README_zh.md                           ← 本文件
 ├── INTRODUCTION.md                        ← 设计深度导览
 ├── INTRODUCTION_zh.md                     ← 中文版
 ├── windows_setup.ps1                      ← Windows 工作区安装脚本
+├── plugin/aia-skills.js                   ← opencode 插件：注册 .opencode/skills + 每轮把 AGENTS.md 注入系统提示
 └── skills/                                ← 权威 SKILL.md 目录（唯一入库内容；工具目录由安装步骤生成）
     ├── task-single-plan/
     ├── task-multi-build/
@@ -53,6 +53,7 @@ English version: [README.md](README.md)。
     ├── task-repo-analyze/
     ├── task-distill-spec/
     ├── task-doc-write/
+    ├── task-cleanup-slop/
     ├── task-why-how-what/
     ├── job-plan/
     ├── job-build/
@@ -67,7 +68,7 @@ English version: [README.md](README.md)。
     └── job-scamper/
 ```
 
-改 `skills/<slug>/SKILL.md` 或 `AGENTS.md`。`.claude/`、`.cursor/`、`.opencode/` 三个工具目录不属于本仓库；安装步骤和 `windows_setup.ps1` 会在你的工作区里生成它们的 `skills/` 投影。`CLAUDE.md` 引用 `@AGENTS.md`。
+改 `skills/<slug>/SKILL.md` 或 `AGENTS.md`。`.claude/`、`.cursor/`、`.opencode/` 三个工具目录不属于本仓库；安装步骤和 `windows_setup.ps1` 会在你的工作区里生成它们的 `skills/` 投影。
 
 ## 安装
 
@@ -80,7 +81,6 @@ English version: [README.md](README.md)。
 ```
 workspace/
 ├── AGENTS.md               ← 来自 aia_kaiwu
-├── CLAUDE.md               ← 来自 aia_kaiwu（引用 @AGENTS.md）
 ├── skills/                 ← 来自 aia_kaiwu（其 skills/ 的拷贝或软链接）
 ├── .claude/skills          ← skills/ 的投影（macOS/Linux 软链接，Windows 复制）
 ├── .cursor/skills          ← skills/ 的投影（macOS/Linux 软链接，Windows 复制）
@@ -95,10 +95,9 @@ mkdir -p ~/workspace
 cd ~/workspace
 
 # 1. aia_kaiwu 的权威文件（拷贝可独立演化，或 symlink 跟随 git pull）
-cp -R /path/to/aia_kaiwu/{AGENTS.md,CLAUDE.md,skills} .
+cp -R /path/to/aia_kaiwu/{AGENTS.md,skills} .
 #   symlink 方式：
 #   ln -sf /path/to/aia_kaiwu/AGENTS.md AGENTS.md
-#   ln -sf /path/to/aia_kaiwu/CLAUDE.md CLAUDE.md
 #   ln -sfn /path/to/aia_kaiwu/skills  skills
 
 # 2. 生成各工具的 skill 投影（各一个软链接 → skills/）
@@ -153,8 +152,28 @@ opencode 原生把根目录的 `AGENTS.md` 作为 always-on 指令加载。
 
 | 文件 | 加载时机 | 用途 |
 |---|---|---|
-| `AGENTS.md`（根目录） | 会话启动 | Always-on 操作规则，包括默认路由到 `task-*` / `job-*` 技能 |
-| `skills/*/SKILL.md` | 按需通过 `skill` 工具 | 每个技能或工作流的完整行为契约 |
+| `AGENTS.md`（根目录） | 会话启动 + 每轮重申 | Always-on 操作规则，包括默认路由到 `task-*` / `job-*` 技能 |
+| `.opencode/plugins/aia-skills.js` | 会话启动 | 把 `.opencode/skills` 注册进 `config.skills.paths`，并在每次请求把 `AGENTS.md` 注入系统提示 |
+| `.opencode/skills/*/SKILL.md` | 按需通过 `skill` 工具 | 每个技能或工作流的完整行为契约 |
+
+### 注册 skills 插件
+
+仓库自带的 [`plugin/aia-skills.js`](plugin/aia-skills.js) 有两个 hook，照搬 superpowers 插件：
+
+1. `config`：会话启动时把 `<根>/.opencode/skills` 追加进 `config.skills.paths`。`.opencode/skills` 是指向 `skills/` 的单个软链接，与 `.cursor/skills`、`.claude/skills` 一致；opencode 不会自己扫描这个投影目录。
+2. `experimental.chat.system.transform`：每次请求把 `AGENTS.md` 注入系统提示。opencode 原生的 `AGENTS.md` 加载处在容易被稀释、跳过的弱上下文层；每轮在系统层重申，使路由规则难以被跳过。
+
+opencode 会自动加载 `.opencode/plugins/` 下的任意插件。
+
+两个都是从工作区根目录一次性建好的软链接（macOS / Linux）：
+
+```bash
+mkdir -p .opencode/plugins
+ln -sfn ../skills .opencode/skills
+ln -sfn ../../plugin/aia-skills.js .opencode/plugins/aia-skills.js
+```
+
+Windows：把 `plugin/aia-skills.js` 复制进 `.opencode/plugins/`、把 `skills/` 复制进 `.opencode/skills/`，不要用软链接。
 
 ### 验证生效
 
@@ -162,6 +181,7 @@ opencode 原生把根目录的 `AGENTS.md` 作为 always-on 指令加载。
 2. 问："你现在在按 AGENTS.md 的什么规则做事？"
 3. 期望 AI 回答：非问题指令先进 `task-yugong`（单一有界任务，不委派）。
 4. 给一个界定清楚的实现任务；期望 AI 按 `task-yugong` 契约执行（先出 todo，每步验证，scope 变大就停下汇报）。
+5. 问："列出你能加载的 skill。"期望列出完整的 `task-*` / `job-*` 集合，说明插件已注册 `.opencode/skills`。
 
 ---
 
@@ -188,13 +208,13 @@ Cursor 原生把根目录的 `AGENTS.md` 作为 always-on 规则加载。
 
 ## Claude Code 配置
 
-Claude Code 把根目录的 `CLAUDE.md` 作为项目指令加载，同时也认 `AGENTS.md`。
+Claude Code 把根目录的 `AGENTS.md` 作为项目指令加载。
 
 ### 自动加载的文件
 
 | 文件 | 加载时机 | 用途 |
 |---|---|---|
-| `CLAUDE.md`（`@AGENTS.md` 引用） | 会话启动 | 项目指令 |
+| `AGENTS.md` | 会话启动 | 项目指令 |
 | `.claude/skills/*/SKILL.md` | agent 被调用时 | 所有能力对应的 Agent Skills |
 
 `.claude/skills` 是指向 `skills/` 的单个软链接。各能力的 YAML frontmatter 用 Claude Code 的 schema：`name`、`description`、可选`tools` 白名单、可选 `model`。
@@ -217,7 +237,6 @@ VS Code Copilot Chat 自动扫描根目录下的 `.claude/skills/*/SKILL.md`。�
 | 文件 | 配置项 | 默认 |
 |---|---|---|
 | `AGENTS.md`（根目录） | `chat.useAgentsMdFile` | **on** |
-| `CLAUDE.md`（根目录，`@AGENTS.md` 引用） | `chat.useClaudeMdFile` | **on** |
 | `.claude/skills/*/SKILL.md`（Agent Skills） | 自动（Agent Skills 目录） | on |
 
 VS Code Copilot 自动发现 `.claude/skills/` 下的 Agent Skills（`SKILL.md` 目录），与 Claude Code 共享。
@@ -270,6 +289,7 @@ Reference: <https://code.visualstudio.com/docs/agent-customization/agent-skills>
 | [`task-repo-analyze`](skills/task-repo-analyze/SKILL.md) | 分析仓库结构、约定、工具链、CI。消耗 token 较多，会先提示用户；输出持久化到 `spec/repo-analyze/`。 |
 | [`task-distill-spec`](skills/task-distill-spec/SKILL.md) | 从现有文档蒸馏出 overview 级项目 spec（术语表、领域模型、设计原则、业务逻辑）为可预加载文件。只压缩只定义、绝不推断；静态快照。 |
 | [`task-doc-write`](skills/task-doc-write/SKILL.md) | 四种模式（api、architecture、guide、readme）撰写专业文档，区分专业和科普两种风格。 |
+| [`task-cleanup-slop`](skills/task-cleanup-slop/SKILL.md) | 清理文档里的 AI 垃圾话（自我辩护、说教式祈使、填充、重复、em-dash 滥用），只删措辞不动事实与决策。 |
 | [`task-judge`](skills/task-judge/SKILL.md) | 双轴审查（Standards + Spec，两轴独立不合并）。 |
 | [`task-debug`](skills/task-debug/SKILL.md) | 六阶段证据优先硬 bug 诊断回路。 |
 | [`task-why-how-what`](skills/task-why-how-what/SKILL.md) | 单一视角的一次接地推演：把一个起点用黄金圈（Why→How→What）+ 第一性原理想透，产出一份结果，不做跨结果裁决。领域通用。 |

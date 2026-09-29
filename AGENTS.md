@@ -25,6 +25,7 @@ Each turn: MUST load `skill(name="task-yugong")` first for any message that is n
 | Analyze repository structure, conventions, tooling ("分析一下这个库") | `/task-repo-analyze` |
 | Distill an overview-level project spec (glossary / concepts / principles / business logic) from existing docs for AI preload ("蒸馏项目 spec", "生成项目 overview/术语基线") | `/task-distill-spec` |
 | Write documentation (API reference, design doc, guide, README) | `/task-doc-write` |
+| Clean AI slop prose from a document (清理AI垃圾话 / 文档瘦身) | `/task-cleanup-slop` |
 | Analyze image / PDF / diagram | `/task-multimodal-looker` |
 | Throwaway prototype for a design question | `/task-quick-verify` |
 | Multi-session foggy work (chart a decision-ticket map) | `/task-strategy` |
