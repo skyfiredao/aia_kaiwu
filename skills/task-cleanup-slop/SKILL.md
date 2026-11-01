@@ -36,6 +36,8 @@ Remove AI slop prose from a document while preserving every resolved decision, c
 
 ## Hard constraints
 
+- Output only conclusions supported by verifiable evidence.
+- Achieve the highest information density and communication efficiency.
 - Modify only the files the user included. Leave every excluded file untouched, including ones with related or contradictory content. Do not expand scope without asking.
 - This pass preserves meaning. Never drop a resolved decision, contract, or unique fact to shorten prose.
 - Add no new sections, compatibility fields, or content. The only addition allowed is a pointer to an owning document.

@@ -171,6 +171,9 @@ handoffs:
 
 ## Hard constraints
 
+- Use the same name for the same concept throughout the document whenever possible.
+- Aim for 80% adherence to ASD-STE100 (Simplified Technical English).
+- Strictly follow Grice's Cooperative Principle and its four conversational maxims: cover the core facts and necessary depth with the minimum sufficient information, eliminating pleasantries and redundant preambles; output only conclusions supported by verifiable evidence, never speculate or invent missing details, and explicitly identify unknown or missing information; stay focused on the core request and within contextual boundaries, without digression; use rigorous logic and precise, unambiguous wording to achieve the highest information density and communication efficiency.
 - Never invent API signatures, parameters, or behaviors not observed in actual source code.
 - Never mix styles within one document. A README uses accessible style throughout; an API reference uses professional style throughout.
 - Never leave placeholder text (`TODO`, `TBD`, `<fill in>`) in the output. If information is unavailable, state that explicitly: "Not yet documented in source."
