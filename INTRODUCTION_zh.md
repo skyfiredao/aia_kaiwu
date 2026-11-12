@@ -281,12 +281,12 @@
 
 #### `job-spiral-up`
 
-- **目的**: 单会话自主 supervisor。创建 worktree 分支，串起 `task-single-plan` → 内联执行（basket 级重试）→ review 直到 `Done`。自维护 loop table 于 `spec/<slug>/job-spiral-up.md`；原子技能输出不修改。每 cycle 在 spiral 分支上 commit。
-- **入场时机**: 用户明确要求单会话内自主跑到收敛（"循环直到结束""一直到结束""不要停，直到完成""无限循环"等），并给出有界目标。"无限循环"只表达意图，实际执行以 `Done` 为终止。
+- **目的**: 可恢复、按层推进的自主 supervisor。`plan.md`、嵌套 todo、`blocker.md` 和 `loop-scheduler.md` 保存在原始 Git 工作目录同级的 `<target-parent>/spec/<repo>/<slug>/`。代码在隔离 worktree 中提交，运行记录保留在 Git 之外。
+- **入场时机**: 用户要求有界目标自主收敛（"循环直到结束""一直到结束""不要停，直到完成""无限循环"等），包括中断或上下文压缩后的恢复。
 - **链路参考**: 该能力自己的 `SKILL.md`（权威链路）
-- **调度规则**: 不派 `task-yugong` / `task-multi-build` / `task-clarify` / `job-plan` / `job-build` / `job-review` / `job-security-review`。plan step 内联执行。basket 失败必须命名实质差异化的下一次尝试才能重试；否则记为 stuck-point fix item。fix items 按 LIFO 处理。stall 触发对称 re-planning。
-- **终止状态**: 仅 `Done`。所有 plan step 完成且无未解决 fix item 时到达。worktree 分支留给用户 merge 或 discard。
-- **不适用**: 模糊请求、跨 session 恢复、需要不可逆共享影响操作的计划（这些应在 planning 阶段被 `task-challenge` 拒绝）。
+- **调度规则**: 内联执行，不派 `task-yugong` / `task-multi-build` / `task-clarify` / `job-plan` / `job-build` / `job-review` / `job-security-review`。所有分支同层可执行任务遍历后再下降。局部阻塞让出调度，继续独立任务；有限重试与分支内重新规划保留失败历史。
+- **终止状态**: `Done` 要求所有目标及后代验收通过、阻塞解除、快进集成验证通过，且 worktree 和分支已移除。所有层均无自主路径才进入 `Blocked`；`waiting` 有限等待。`Cleanup pending` 保留未完成清理。所有状态均保留外部记录。
+- **不适用**: 模糊请求或需要未经授权的不可逆共享影响操作的计划。
 
 #### `job-scamper`
 
@@ -660,4 +660,3 @@ logic 分支：终端 app 模拟支付重试循环的状态机，跑 200 条合�
 `task-multi-build` 在一个 12 步 auth 重构计划的第 6 步。`task-checkpoint` 读第 3 步（上次检查点）以来的 diff，发现执行者引入了一个计划没批准的新依赖，返回 `adjust plan`。计划更新，明确处理新依赖（或者移除依赖）后继续。
 
 ---
-

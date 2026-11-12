@@ -281,12 +281,12 @@ Multi-step chains that compose `task-*` skills into end-to-end business workflow
 
 #### `job-spiral-up`
 
-- **Purpose**: Single-session autonomous supervisor. Creates a worktree branch, drives `task-single-plan` → inline execution with basket-level retry → review to `Done`. Maintains its own loop table under `spec/<slug>/job-spiral-up.md`; atomic skill outputs are never mutated. Commits every cycle on the spiral branch.
-- **When to enter**: User explicitly requests an autonomous run to convergence ("loop until done", "keep going until complete", "循环直到结束", or equivalent) and supplies a bounded goal within one session. "Infinite loop" expresses intent only; execution is bounded by the `Done` terminal.
+- **Purpose**: Autonomous supervisor with resumable, breadth-first execution. Keeps `plan.md`, nested todo files, `blocker.md` and `loop-scheduler.md` under `<target-parent>/spec/<repo>/<slug>/`, beside the original Git working directory. Commits code in an isolated worktree; retains runtime records outside Git.
+- **When to enter**: User requests autonomous convergence ("loop until done", "keep going until complete", "循环直到结束", or equivalent) for a bounded goal, including recovery after interruption or context compaction.
 - **Chain reference**: the capability's `SKILL.md` (authoritative chain)
-- **Dispatch rule**: Never dispatches `task-yugong`, `task-multi-build`, `task-clarify`, `job-plan`, `job-build`, `job-review`, or `job-security-review`. Executes plan steps inline. On basket failure, requires a materially different next attempt to retry; otherwise records a stuck-point fix item. Fix items handled LIFO. Stall triggers symmetric re-planning.
-- **Terminal states**: `Done` only. Reached when all plan steps are done and no unresolved fix items remain. The worktree branch is left for the user to merge or discard.
-- **Not for**: Ambiguous requests, cross-session recovery, or plans that require irreversible shared-impact actions (those should be rejected by `task-challenge` during planning).
+- **Dispatch rule**: Executes inline; excludes `task-yugong`, `task-multi-build`, `task-clarify`, `job-plan`, `job-build`, `job-review` and `job-security-review`. Visits ready tasks across all branches at one depth before descending. Local blockers yield to independent work; bounded retries and branch-local replanning preserve failure history.
+- **Terminal states**: `Done` requires all goals and descendants verified, blockers resolved, fast-forward integration validated, and worktree/branch removed. `Blocked` requires no autonomous route at any depth; `waiting` is bounded. `Cleanup pending` preserves unfinished cleanup. External records remain in every case.
+- **Not for**: Ambiguous requests or plans requiring unauthorized irreversible shared-impact actions.
 
 #### `job-scamper`
 
@@ -666,4 +666,3 @@ Throwaway from day one. One command to run. No persistence. No tests. No polish.
 **Micro-example.** `task-multi-build` is on step 6 of a 12-step plan implementing an auth refactor. `task-checkpoint` reads the diff since step 3 (last checkpoint), notices the executor introduced a new dependency the plan didn't sanction, and returns `adjust plan`. The plan is updated to explicitly account for the new dependency (or the dependency is removed) before continuing.
 
 ---
-
